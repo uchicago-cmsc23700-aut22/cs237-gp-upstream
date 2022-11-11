@@ -30,3 +30,14 @@
 *.exe
 *.out
 *.app
+
+# Compiled shader programs
+*.spv
+
+# repo-specific stuff
+build/*
+cs237-library/include/cs237-config.h
+
+# macOS
+.DS_Store
+
