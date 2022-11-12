@@ -1,0 +1,9 @@
+Put any objects and textures that you need for your renderer in this
+directory.  Note that map-specific files belong in the map's 'objects'
+directory.
+
+We include two files that you might find useful:
+
+	noise.png	-- 2d Perlin noise image
+	detail.png	-- 2d detail texture
+ 
