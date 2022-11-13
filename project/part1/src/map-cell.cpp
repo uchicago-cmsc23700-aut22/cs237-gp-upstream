@@ -1,4 +1,4 @@
-/*! \file map-cell.cxx
+/*! \file map-cell.cpp
  *
  * \author John Reppy
  *
@@ -91,7 +91,7 @@ void Cell::load ()
     bool compressed = (readUI32(inS) != 0);
     uint32_t size = readUI32(inS);
     uint32_t nLODs = readUI32(inS);
-    if (magic != Cell::MAGIC) {
+    if (magic != Cell::kMagic) {
 #ifndef NDEBUG
         std::cerr << "Cell::load: bogus magic number in header\n";
 #endif
@@ -104,7 +104,7 @@ void Cell::load ()
 #endif
         exit (1);
     }
-    else if ((nLODs < Cell::MIN_NUM_LODS) || (Cell::MAX_NUM_LODS < nLODs)) {
+    else if ((nLODs < Cell::kMinLODs) || (Cell::kMaxLODs < nLODs)) {
 #ifndef NDEBUG
         std::cerr << "Cell::load: unsupported number of LODs\n";
 #endif
@@ -116,7 +116,7 @@ void Cell::load ()
         exit (1);
     }
 
-    uint32_t qtreeSize = QTree::fullSize(nLODs);
+    uint32_t qtreeSize = qtree::fullSize(nLODs);
     std::vector<std::streamoff> toc(qtreeSize);
     for (int i = 0;  i < qtreeSize;  i++) {
         toc[i] = static_cast<std::streamoff>(readUI64(inS));
@@ -128,7 +128,7 @@ void Cell::load ()
     this->_nTiles = qtreeSize;
     this->_tiles = new class Tile[qtreeSize];
 
-    this->_tiles[0]._Init (this, 0, 0, 0, 0);
+    this->_tiles[0]._init (this, 0, 0, 0, 0);
 
   // load the tile mesh data
     for (uint32_t id = 0;  id < qtreeSize;  id++) {
@@ -156,15 +156,15 @@ void Cell::load ()
       // compute the tile's bounding box.  We use double precision here, so that we can
       // support large worlds.
         glm::dvec3 nwCorner =
-            this->_map->NWCellCorner(this->_row, this->_col) +
+            this->_map->nwCellCorner(this->_row, this->_col) +
             glm::dvec3(
                 this->_map->hScale() * double(this->_tiles[id]._col),
-                double(this->_map->BaseElevation() + this->_map->vScale() * float(cp->_minY)),
+                double(this->_map->baseElevation() + this->_map->vScale() * float(cp->_minY)),
                 this->_map->hScale() * double(this->_tiles[id]._row));
-        double w = this->_map->hScale() * this->_tiles[id].Width();
+        double w = this->_map->hScale() * this->_tiles[id].width();
         glm::dvec3 seCorner = nwCorner + glm::dvec3(w, 0.0, w);
         seCorner.y = static_cast<double>(
-            this->_map->BaseElevation() + this->_map->vScale() * float(cp->_maxY));
+            this->_map->baseElevation() + this->_map->vScale() * float(cp->_maxY));
         this->_tiles[id]._bbox = cs237::AABBd(nwCorner, seCorner);
     }
 
@@ -196,7 +196,7 @@ Tile::~Tile ()
     delete this->_chunk._indices;
 }
 
-void Tile::_AllocChunk (uint32_t nv, uint32_t ni)
+void Tile::_allocChunk (uint32_t nv, uint32_t ni)
 {
     this->_chunk._nVertices = nv;
     this->_chunk._nIndices = ni;
@@ -222,9 +222,9 @@ void Tile::_init (Cell *cell, uint32_t id, uint32_t row, uint32_t col, uint32_t 
                 { halfWid, halfWid }, // SE
                 { halfWid, 0       }, // SW
             };
-        int kidId = QTree::nwChild(id);
+        int kidId = qtree::nwChild(id);
         for (int i = 0;  i < 4;  i++) {
-            this->Child(i)->_init (cell, kidId+i, row+offset[i].dr, col+offset[i].dc, lod+1);
+            this->child(i)->_init (cell, kidId+i, row+offset[i].dr, col+offset[i].dc, lod+1);
         }
     }
 
@@ -240,7 +240,8 @@ void Tile::dump (std::ostream &outS)
 /* ADDITIONAL TILE STATE HERE */
         << "\n";
 
-    for (int i = 0;  i < this->NumChildren();  i++)
-        this->Child(i)->dump (outS);
+    for (int i = 0;  i < this->numChildren();  i++) {
+        this->child(i)->dump (outS);
+    }
 
 }

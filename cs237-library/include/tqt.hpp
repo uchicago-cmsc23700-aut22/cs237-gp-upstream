@@ -18,12 +18,15 @@
 
 namespace tqt {
 
-  //! Manages a disk-based texture quadtree and supports loading individual
+  //! Manages a disk-based texture-image quadtree and supports loading individual
   //! texture images at different levels and locations in the tree.
     class TextureQTree {
       public:
 
-        TextureQTree (const char* filename);
+        //! \brief constructor for a texture quad tree
+        //! \param filename
+        //! \param sRGB     are the textures in sRGB format?
+        TextureQTree (std::string const &filename, bool flip, bool sRGB);
         ~TextureQTree();
 
       //! is this a valid TQT?
@@ -33,7 +36,7 @@ namespace tqt {
       //! the size of a texture tile measured in pixels (tiles are always square)
         int tileSize() const { return this->_tileSize; }
 
-      //! return the image tile at the specified quadtree node.
+      //! \brief return the image tile at the specified quadtree node.
       //! \param[in] level the level of the node in the tree (root = 0)
       //! \param[in] row the row of the node on its level (north == 0)
       //! \param[in] col the column of the node on its level (west == 0)
@@ -41,7 +44,7 @@ namespace tqt {
       //! \return a pointer to the image; nullptr is returned if there is
       //!         an error.  It is the caller's responsibility to manage the
       //!         image's storage.
-        cs237::Image2D *loadImage (int level, int row, int col, bool flip = true);
+        cs237::Image2D *loadImage (int level, int row, int col);
 
       //! return true if the file looks like a TQT file of the right version
         static bool isTQTFile (std::string const &filename);
@@ -50,6 +53,9 @@ namespace tqt {
         std::vector<std::streamoff> _toc;       //!< stream offsets for images
         int _depth;                             //!< the depth of the TQT
         int _tileSize;                          //!< the size of a texture tile in pixels
+        bool _flip;                             //!< true if we are flipping the Y dimension
+                                                //!  of the loaded images
+        bool _sRGB;                             //!< true if we are loading sRGB images
         std::ifstream *_source;                 //!< the source file for the textures
 
     };  // class TextureQTree

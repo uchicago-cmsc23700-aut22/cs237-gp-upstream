@@ -1,4 +1,4 @@
-/*! \file buffer-cache.cxx
+/*! \file buffer-cache.cpp
  *
  * \author John Reppy
  */
@@ -17,8 +17,8 @@
 /**** struct VAO member functions *****/
 
 VAO::VAO (cs237::Application *_app)
-  : _vBuf(new cs237::VertexBuffer
 {
+#ifdef XXX
     CS237_CHECK( glGenVertexArrays (1, &this->_id) );
     GLuint buf[2];
     CS237_CHECK( glGenBuffers (2, buf) );
@@ -27,7 +27,7 @@ VAO::VAO (cs237::Application *_app)
     this->_iBuf = buf[1];
     this->_nIndices = 0;
     this->_inUse = false;
-
+#endif
 }
 
 VAO::~VAO()
@@ -39,6 +39,7 @@ void VAO::load (struct Chunk const &chunk)
 {
     assert (this->_inUse);
 
+#ifdef XXX
     CS237_CHECK( glBindVertexArray (this->_id) );
 
   // setup the vertex array (4 shorts per vertex)
@@ -53,7 +54,7 @@ void VAO::load (struct Chunk const &chunk)
     this->_nIndices = chunk._nIndices;
 
     CS237_CHECK( glBindVertexArray (0) );
-
+#endif
 }
 
 /**** class BufferCache member functions *****/

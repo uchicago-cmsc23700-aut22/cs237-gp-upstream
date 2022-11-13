@@ -115,6 +115,14 @@ public:
     //! \brief access function for the physical device limits
     const VkPhysicalDeviceLimits *limits () const { return &this->_props()->limits; }
 
+    //! \brief access function for the properties of an image format
+    VkFormatProperties formatProps (VkFormat fmt) const
+    {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(this->_gpu, fmt, &props);
+        return props;
+    }
+
 protected:
     //! information about queue families
     template <typename T>
@@ -216,13 +224,15 @@ protected:
     //! \param format   the pixel format for the image
     //! \param tiling   the tiling method for the pixels (device optimal vs linear)
     //! \param usage    flags specifying the usage of the image
+    //! \param mipLvls  number of mipmap levels for the image (default = 1)
     //! \return the created image
     VkImage _createImage (
         uint32_t wid,
         uint32_t ht,
         VkFormat format,
         VkImageTiling tiling,
-        VkImageUsageFlags usage);
+        VkImageUsageFlags usage,
+        uint32_t mipLvls);
 
     //! \brief A helper function for allocating and binding device memory for an image
     //! \param img    the image to allocate memory for

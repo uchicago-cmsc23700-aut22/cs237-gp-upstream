@@ -1,4 +1,4 @@
-/*! \file map.cxx
+/*! \file map.cpp
  *
  * \author John Reppy
  *
@@ -20,7 +20,7 @@
 
 /***** class Map member functions *****/
 
-Map::Map () : _grid(nullptr), _objects(nullptr) { }
+Map::Map (cs237::Application *app) : _app(app), _grid(nullptr), _objects(nullptr) { }
 
 Map::~Map ()
 {
@@ -64,7 +64,7 @@ static bool getThreeFloats (const json::Array *arr, float out[3])
     return false;
 }
 
-bool Map::loadMap (std::string const &mapName, bool verbose)
+bool Map::load (std::string const &mapName, bool verbose)
 {
     if (this->_grid != nullptr) {
       // map file has already been loaded, so return false
@@ -73,7 +73,7 @@ bool Map::loadMap (std::string const &mapName, bool verbose)
 
     this->_path = mapName + "/";
 
-    json::Value *map = json::ParseFile(this->_path + "map.json");
+    json::Value *map = json::parseFile(this->_path + "map.json");
     const json::Object *root = (map != nullptr) ? map->asObject() : nullptr;
 
     if (root == nullptr) {
@@ -170,8 +170,8 @@ bool Map::loadMap (std::string const &mapName, bool verbose)
 
   // get cell size
     intnum = root->fieldAsInteger("cell-size");
-    if ((intnum == nullptr) || (intnum->intVal() < MIN_CELL_SIZE)
-    || (MAX_CELL_SIZE < intnum->intVal()))
+    if ((intnum == nullptr) || (intnum->intVal() < kMinCellSize)
+    || (kMaxCellSize < intnum->intVal()))
     {
         error (mapName, "missing/bogus cell-size field");
         return false;
@@ -221,35 +221,35 @@ bool Map::loadMap (std::string const &mapName, bool verbose)
         float sunI[3] = { 0.9, 0.9, 0.9 };  // bright sun
         float ambI[3] = { 0.1, 0.1, 0.1 };
 
-        if (GetThreeFloats (root->fieldAsArray("sun-dir"), sunDir)) {
+        if (getThreeFloats (root->fieldAsArray("sun-dir"), sunDir)) {
             error (mapName, "bogus sun-dir field");
             return false;
         }
 
-        if (GetThreeFloats (root->fieldAsArray("sun-intensity"), sunI)) {
+        if (getThreeFloats (root->fieldAsArray("sun-intensity"), sunI)) {
             error (mapName, "bogus sun-intensity field");
             return false;
         }
 
-        if (GetThreeFloats (root->fieldAsArray("ambient"), ambI)) {
+        if (getThreeFloats (root->fieldAsArray("ambient"), ambI)) {
             error (mapName, "bogus ambient field");
             return false;
         }
 
         this->_sunDir = normalize (glm::vec3(sunDir[0], sunDir[1], sunDir[2]));
-        this->_sunI = cs237::color3f(sunI[0], sunI[1], sunI[2]);
-        this->_ambI = cs237::color3f(ambI[0], ambI[1], ambI[2]);
+        this->_sunI = glm::vec3(sunI[0], sunI[1], sunI[2]);
+        this->_ambI = glm::vec3(ambI[0], ambI[1], ambI[2]);
     }
 
   // fog (optional)
     if ((*root)["fog-color"] != nullptr) {
         float fogColor[3];
         this->_hasFog = true;
-        if (GetThreeFloats (root->fieldAsArray("fog-color"), fogColor)) {
+        if (getThreeFloats (root->fieldAsArray("fog-color"), fogColor)) {
             error (mapName, "bogus fog-color field");
             return false;
         }
-        this->_fogColor = cs237::color3f(fogColor[0], fogColor[1], fogColor[2]);
+        this->_fogColor = glm::vec3(fogColor[0], fogColor[1], fogColor[2]);
 
         num = root->fieldAsNumber("fog-density");
         if (num == nullptr) {
@@ -260,7 +260,7 @@ bool Map::loadMap (std::string const &mapName, bool verbose)
     }
     else {
         this->_hasFog = false;
-        this->_fogColor = cs237::color3f(0, 0, 0);
+        this->_fogColor = glm::vec3(0, 0, 0);
         this->_fogDensity = 0;
     }
 
@@ -268,15 +268,15 @@ bool Map::loadMap (std::string const &mapName, bool verbose)
     {
         std::string objectsDir = this->_path + "objects";
         if (access(objectsDir.c_str(), F_OK) == 0) {
-            this->_objects = new Objects (this);
+            this->_objects = new Objects (this->_app, this);
         }
     }
 
   // compute and check other map info
     int cellShft = ilog2(this->_cellSize);
     if ((cellShft < 0)
-    || (this->_cellSize < Map::MIN_CELL_SIZE)
-    || (Map::MAX_CELL_SIZE < this->_cellSize)) {
+    || (this->_cellSize < Map::kMinCellSize)
+    || (Map::kMaxCellSize < this->_cellSize)) {
         error (mapName, "cellSize must be power of 2 in range");
         return false;
     }
@@ -355,4 +355,3 @@ int ilog2 (uint32_t n)
     return -1;
 
 }
-

@@ -1,4 +1,4 @@
-/*! \file texture-cache.cxx
+/*! \file texture-cache.cpp
  *
  * \author John Reppy
  */
@@ -20,7 +20,7 @@ TextureCache::TextureCache ()
     : _residentLimit(ONE_GIG), _residentSzb(0), _clock(0)
 { }
 
-Texture *TextureCache::Make (tqt::TextureQTree *tree, int level, int row, int col)
+Texture *TextureCache::make (tqt::TextureQTree *tree, int level, int row, int col)
 {
     TextureCache::Key key(tree, level, row, col);
     TextureCache::TextureTbl::const_iterator got = this->_textureTbl.find(key);
@@ -36,7 +36,7 @@ Texture *TextureCache::Make (tqt::TextureQTree *tree, int level, int row, int co
 }
 
 // record that the given texture is now active
-void TextureCache::_MakeActive (Texture *txt)
+void TextureCache::_makeActive (Texture *txt)
 {
     assert (! txt->_active);
     if (txt->_activeIdx >= 0) {
@@ -57,7 +57,7 @@ void TextureCache::_MakeActive (Texture *txt)
 }
 
 // record that the given texture is now inactive
-void TextureCache::_Release (Texture *txt)
+void TextureCache::_release (Texture *txt)
 {
     assert (txt->_active);
     assert (this->_active[txt->_activeIdx] == txt);
@@ -73,10 +73,10 @@ void TextureCache::_Release (Texture *txt)
     this->_inactive.push_back(txt);
 }
 
-cs237::texture2D *TextureCache::_AllocTex2D (cs237::image2d *img)
+cs237::Texture2D *TextureCache::_allocTex2D (cs237::Image2D *img)
 {
 /* FIXME: eventually, we should reuse inactive textures to reduce GPU memory pressure */
-    cs237::texture2D *txt = new cs237::texture2D (GL_TEXTURE_2D, img);
+    cs237::Texture2D *txt = new cs237::Texture2D (img);
     txt->Parameter (GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     txt->Parameter (GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     txt->Parameter (GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -101,24 +101,24 @@ Texture::~Texture ()
 
 // preload the texture data into OpenGL; this operation is a hint to the texture
 // cache that the texture cache that the texture is going to be used soon.
-void Texture::Activate ()
+void Texture::activate ()
 {
     assert (! this->_active);
     if (this->_txt == nullptr) {
       // load the image data from the TQT and create a texture for it
-        cs237::image2d *img = this->_tree->LoadImage (this->_level, this->_row, this->_col, false);
-        this->_txt = this->_cache->_AllocTex2D (img);
+        cs237::Image2D *img = this->_tree->loadImage (this->_level, this->_row, this->_col);
+        this->_txt = this->_cache->_allocTex2D (img);
     }
 
-    this->_cache->_MakeActive (this);
+    this->_cache->_makeActive (this);
     this->_active = true;
 
 }
 
 // hint to the texture cache that this texture is not needed.
-void Texture::Release ()
+void Texture::release ()
 {
     assert (this->_active);
-    this->_cache->_Release (this);
+    this->_cache->_release (this);
     this->_active = false;
 }

@@ -28,10 +28,14 @@ protected:
     VkImage _img;               //!< Vulkan image to hold the texture
     VkDeviceMemory _mem;        //!< device memory for the texture image
     VkImageView _view;          //!< image view for texture image
+    uint32_t _wid;              //!< texture width
+    uint32_t _ht;               //!< teture height (1 for 1D textures)
+    uint32_t _nMipLevels;       //!< number of mipmap levels
+    VkFormat _fmt;              //!< the texel format
 
     TextureBase (
         Application *app,
-        uint32_t wid, uint32_t ht,
+        uint32_t wid, uint32_t ht, uint32_t mipLvls,
         cs237::__detail::ImageBase const *img);
     ~TextureBase ();
 
@@ -52,6 +56,11 @@ protected:
     {
         return this->_app->_allocBufferMemory (buf, props);
     }
+
+
+    //! \brief initialize a texture by copying data into it using a staging buffer.
+    //! \param img  the source of the data
+    void _init (cs237::__detail::ImageBase const *img);
 
 };
 
@@ -77,6 +86,11 @@ public:
     //! \param img     the source image for the texture
     //! \param mipmap  if true, generate mipmap levels for the texture.
     Texture2D (Application *app, Image2D const *img, bool mipmap = false);
+
+private:
+    //! helper function for generating the mipmap levels
+    void _generateMipMaps ();
+
 };
 
 } // namespace cs237

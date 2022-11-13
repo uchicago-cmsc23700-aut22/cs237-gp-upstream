@@ -93,8 +93,8 @@ namespace tqt {
 
     /***** class TextureQuadTree member functions *****/
 
-    TextureQTree::TextureQTree (const char* filename)
-        : _source(nullptr)
+    TextureQTree::TextureQTree (std::string const &filename, bool flip, bool sRGB)
+        : _flip(flip), _sRGB(sRGB), _source(nullptr)
     {
         Hdr hdr;
 
@@ -147,7 +147,7 @@ namespace tqt {
         }
     }
 
-    cs237::Image2D *TextureQTree::loadImage (int level, int row, int col, bool flip)
+    cs237::Image2D *TextureQTree::loadImage (int level, int row, int col)
     {
         if (! this->isValid()) {
             return nullptr;
@@ -158,7 +158,12 @@ namespace tqt {
         assert (index < this->_toc.size());
 
         this->_source->seekg(this->_toc[index]);
-        cs237::Image2D *img = new cs237::Image2D (*(this->_source), flip);
+        cs237::Image2D *img;
+        if (this->_sRGB) {
+            img = new cs237::Image2D (*(this->_source), this->_flip);
+        } else {
+            img = new cs237::DataImage2D (*(this->_source), this->_flip);
+        }
         if ((img->width() != this->_tileSize)
         ||  (img->height() != this->_tileSize)
         ||  (img->channels () != cs237::Channels::RGBA)) {

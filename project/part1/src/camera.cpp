@@ -1,4 +1,4 @@
-/*! \file camera.cxx
+/*! \file camera.cpp
  *
  * \author John Reppy
  *
@@ -28,19 +28,19 @@ glm::dvec3 Camera::translate (glm::dvec3 const &p) const
 }
 
 // a transformation matrix that assumes that the camera is at the origin.
-cs237::mat4x4f Camera::viewTransform () const
+glm::mat4 Camera::viewTransform () const
 {
-    return cs237::lookAt (
+    return glm::lookAt (
         glm::vec3(0.0f, 0.0f, 0.0f),
         this->_dir,
         this->_up);
 }
 
 // the projection transform for the camera
-cs237::mat4x4f Camera::projTransform () const
+glm::mat4 Camera::projTransform () const
 {
     float n_e = this->_nearZ * tanf (this->_halfFOV);  // n/e
-    return cs237::frustum(
+    return glm::frustum(
         -n_e, n_e,
         -this->_aspect * n_e, this->_aspect * n_e,
         this->_nearZ, this->_farZ);
@@ -59,7 +59,7 @@ void Camera::setViewport (int wid, int ht)
 void Camera::setFOV (float angle)
 {
     this->_errorFactor = -1.0f;
-    this->_halfFOV = cs237::radians(0.5 * angle);
+    this->_halfFOV = glm::radians(0.5 * angle);
 }
 
 // set the near and far planes
@@ -81,27 +81,27 @@ void Camera::move (glm::dvec3 const &pos)
 void Camera::move (glm::dvec3 const &pos, glm::dvec3 const &at)
 {
     this->_pos = pos;
-    this->_dir = normalize(cs237::toFloat(at - pos));
+    this->_dir = glm::normalize(glm::vec3(at - pos));
 }
 
 // move the camera to a new position, heading, and up vector
 void Camera::move (glm::dvec3 const &pos, glm::dvec3 const &at, glm::dvec3 const &up)
 {
     this->_pos = pos;
-    this->_dir = cs237::toFloat(normalize(at - pos));
-    this->_up = cs237::toFloat(normalize(up));
+    this->_dir = glm::vec3(glm::normalize(at - pos));
+    this->_up = glm::vec3(glm::normalize(up));
 }
 
 // change the direction of the camera
 void Camera::look (glm::vec3 const &dir)
 {
-    this->_dir = normalize(dir);
+    this->_dir = glm::normalize(dir);
 }
 
 // change the direction of the camera
 void Camera::look (glm::vec3 const &dir, glm::vec3 const &up)
 {
-    this->_dir = normalize(dir);
+    this->_dir = glm::normalize(dir);
     this->_up = up;
 }
 

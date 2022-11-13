@@ -11,12 +11,15 @@
 set(TARGET part1)
 
 set(SRCS
-  buffer-cache.cpp
+  app.cpp
+#  buffer-cache.cpp
   camera.cpp
+  main.cpp
   map-cell.cpp
   map-objects.cpp
   map.cpp
-  texture-cache.cpp)
+  texture-cache.cpp
+  window.cpp)
 
 # path to CS237 Library include files
 include_directories(${CS237_INCLUDE_DIR})

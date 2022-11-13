@@ -1,4 +1,4 @@
-/*! \file map-objects.cxx
+/*! \file map-objects.cpp
  *
  * Implementation of the Objects class.
  *
@@ -67,8 +67,8 @@ bool loadColor (json::Object const *jv, glm::vec3 &color)
 
 /***** class Objects member functions *****/
 
-Objects::Objects (const Map *map)
-  : _map(map), _objsDir(map->_path + "objects/"), _objs(), _texs()
+Objects::Objects (cs237::Application *app, const Map *map)
+  : _app(app), _map(map), _objsDir(map->_path + "objects/"), _objs(), _texs()
 { }
 
 // load the objects instances for a map cell
@@ -87,7 +87,7 @@ bool Objects::loadObjects (std::string const &cell, std::vector<Instance *> &obj
     }
 
   // load the objects list
-    json::Value *root = json::ParseFile(objsFile);
+    json::Value *root = json::parseFile(objsFile);
 
   // check for errors
     if (root == nullptr) {
@@ -117,21 +117,21 @@ bool Objects::loadObjects (std::string const &cell, std::vector<Instance *> &obj
             glm::vec3 pos, xAxis, yAxis, zAxis;
             glm::vec3 color;
             if ((file == nullptr) || (frame == nullptr)
-            ||  LoadVec3 (object->fieldAsObject("pos"), pos)
-            ||  LoadVec3 (frame->fieldAsObject("x-axis"), xAxis)
-            ||  LoadVec3 (frame->fieldAsObject("y-axis"), yAxis)
-            ||  LoadVec3 (frame->fieldAsObject("z-axis"), zAxis)
-            ||  LoadColor (object->fieldAsObject("color"), color)) {
+            ||  loadVec3 (object->fieldAsObject("pos"), pos)
+            ||  loadVec3 (frame->fieldAsObject("x-axis"), xAxis)
+            ||  loadVec3 (frame->fieldAsObject("y-axis"), yAxis)
+            ||  loadVec3 (frame->fieldAsObject("z-axis"), zAxis)
+            ||  loadColor (object->fieldAsObject("color"), color)) {
                 std::cerr << "Invalid object description in \"" << objsFile << "\"\n";
                 return true;
             }
-            Instance *inst = this->_MakeInstance(
+            Instance *inst = this->_makeInstance(
                 file->value(),
-                cs237::mat4f (
-                    cs237::vec4f (xAxis, 0.0f),
-                    cs237::vec4f (yAxis, 0.0f),
-                    cs237::vec4f (zAxis, 0.0f),
-                    cs237::vec4f (pos, 1.0f)),
+                glm::mat4 (
+                    glm::vec4 (xAxis, 0.0f),
+                    glm::vec4 (yAxis, 0.0f),
+                    glm::vec4 (zAxis, 0.0f),
+                    glm::vec4 (pos, 1.0f)),
                 color);
           // add to objs vector
             objs.push_back (inst);
@@ -159,10 +159,10 @@ GObject *Objects::loadModel (
         for (auto grpIt = model->beginGroups();  grpIt != model->endGroups();  grpIt++) {
             const OBJ::Material *mat = &model->Material((*grpIt).material);
             /* we ignore the ambient map */
-            this->_LoadTexture (dir, mat->emissiveMap, true);
-            this->_LoadTexture (dir, mat->diffuseMap, true);
-            this->_LoadTexture (dir, mat->specularMap, true);
-            this->_LoadTexture (dir, mat->normalMap, false);
+            this->_loadTexture (dir, mat->emissiveMap, true);
+            this->_loadTexture (dir, mat->diffuseMap, true);
+            this->_loadTexture (dir, mat->specularMap, true, false);
+            this->_loadTexture (dir, mat->normalMap, false, false);
         }
       // create the meshes
         gObj = new std::vector<TriMesh *>();
@@ -187,12 +187,12 @@ GObject *Objects::loadModel (
 // helper function for making instances of objects
 Instance *Objects::_makeInstance (
     std::string const &file,
-    cs237::mat4f const &toCell,
+    glm::mat4 const &toCell,
     glm::vec3 const &color)
 {
   // first we need to get the GObject and bounding box for the file
     cs237::AABBf bbox;
-    GObject *gObj = this->LoadModel (this->_objsDir, file, bbox);
+    GObject *gObj = this->loadModel (this->_objsDir, file, bbox);
 
     assert (gObj != nullptr);
 
@@ -200,15 +200,14 @@ Instance *Objects::_makeInstance (
     Instance *inst = new Instance;
     inst->meshes = gObj;
     inst->toCell = toCell;
-    inst->normToWorld = toCell.normalMatrix();
-    inst->normFromWorld = inst->normToWorld.transpose();
+    inst->normToWorld = glm::inverseTranspose(glm::mat3x3(toCell));
+    inst->normFromWorld = glm::transpose(inst->normToWorld);
     inst->color = color;
 
   // compute the bounding box after transformation to cell coordinates
     inst->bbox.clear();
     for (int j = 0;   j < 8;  j++) {
-        glm::vec3 pt =
-            glm::vec3(inst->toCell * cs237::vec4f(bbox.corner(j), 1));
+        glm::vec3 pt = glm::vec3(inst->toCell * glm::vec4(bbox.corner(j), 1));
         inst->bbox.addPt(pt);
     }
 
@@ -232,7 +231,7 @@ cs237::Texture2D *Objects::loadTexture2D (std::string const &name) const
 
 // helper function for loading textures
 //
-void Objects::_loadTexture (std::string path, std::string name, bool genMipmaps)
+void Objects::_loadTexture (std::string path, std::string name, bool genMipmaps, bool sRGB)
 {
     if (name.empty()) {
         return;
@@ -242,20 +241,17 @@ void Objects::_loadTexture (std::string path, std::string name, bool genMipmaps)
         return;
     }
   // load the image data;
-    cs237::Image2D *img = new cs237::Image2D(path + name);
+    cs237::Image2D *img;
+    if (sRGB) {
+        img = new cs237::Image2D(path + name);
+    } else {
+        img = new cs237::DataImage2D(path + name);
+    }
     if (img == nullptr) {
         std::cerr << "Unable to find texture-image file \"" << path+name << "\"\n";
         exit (1);
     }
-    cs237::Texture2D *txt = new cs237::Texture2D(GL_TEXTURE_2D, img);
-    txt->Parameter (GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    if (genMipmaps) {
-        CS237_CHECK( glGenerateMipmap(GL_TEXTURE_2D) );
-        txt->Parameter (GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    }
-    else {
-        txt->Parameter (GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    }
+    cs237::Texture2D *txt = new cs237::Texture2D(this->_app, img, genMipmaps);
   // add to _texs map
     this->_texs.insert (std::pair<std::string, cs237::Texture2D *>(name, txt));
   // free image

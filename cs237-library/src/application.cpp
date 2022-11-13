@@ -246,8 +246,7 @@ VkFormat Application::_findBestFormat (
     VkFormatFeatureFlags features)
 {
     for (VkFormat fmt : candidates) {
-        VkFormatProperties props;
-        vkGetPhysicalDeviceFormatProperties(this->_gpu, fmt, &props);
+        VkFormatProperties props = this->formatProps(fmt);
         if (tiling == VK_IMAGE_TILING_LINEAR) {
             if ((props.linearTilingFeatures & features) == features) {
                 return fmt;
@@ -348,7 +347,8 @@ VkImage Application::_createImage (
     uint32_t wid,
     uint32_t ht, VkFormat format,
     VkImageTiling tiling,
-    VkImageUsageFlags usage)
+    VkImageUsageFlags usage,
+    uint32_t mipLvls)
 {
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -356,7 +356,7 @@ VkImage Application::_createImage (
     imageInfo.extent.width = wid;
     imageInfo.extent.height = ht;
     imageInfo.extent.depth = 1;
-    imageInfo.mipLevels = 1;
+    imageInfo.mipLevels = mipLvls;
     imageInfo.arrayLayers = 1;
     imageInfo.format = format;
     imageInfo.tiling = tiling;
@@ -465,56 +465,56 @@ void Application::_transitionImageLayout (
     VkImageLayout oldLayout,
     VkImageLayout newLayout)
 {
-        VkCommandBuffer cmdBuf = this->_newCommandBuf();
+    VkCommandBuffer cmdBuf = this->_newCommandBuf();
 
-        this->_beginCommands(cmdBuf);
+    this->_beginCommands(cmdBuf);
 
-        VkImageMemoryBarrier barrier{};
-        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.oldLayout = oldLayout;
-        barrier.newLayout = newLayout;
-        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.image = image;
-        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        barrier.subresourceRange.baseMipLevel = 0;
-        barrier.subresourceRange.levelCount = 1;
-        barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount = 1;
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = oldLayout;
+    barrier.newLayout = newLayout;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = image;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
 
-        VkPipelineStageFlags srcStage;
-        VkPipelineStageFlags dstStage;
+    VkPipelineStageFlags srcStage;
+    VkPipelineStageFlags dstStage;
 
-        if ((oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
-        && (newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)) {
-            barrier.srcAccessMask = 0;
-            barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    if ((oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+    && (newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)) {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-            srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-            dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        }
-        else if ((oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-        && (newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)) {
-            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    }
+    else if ((oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+    && (newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)) {
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-            srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-            dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        }
-        else {
-            ERROR("unsupported layout transition!");
-        }
+        srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else {
+        ERROR("unsupported layout transition!");
+    }
 
-        vkCmdPipelineBarrier(
-            cmdBuf, srcStage, dstStage,
-            0,
-            0, nullptr,
-            0, nullptr,
-            1, &barrier);
+    vkCmdPipelineBarrier(
+        cmdBuf, srcStage, dstStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier);
 
-        this->_endCommands(cmdBuf);
-        this->_submitCommands(cmdBuf);
-        this->_freeCommandBuf(cmdBuf);
+    this->_endCommands(cmdBuf);
+    this->_submitCommands(cmdBuf);
+    this->_freeCommandBuf(cmdBuf);
 
 }
 

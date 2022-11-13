@@ -23,7 +23,7 @@ class Objects; // objects on the map
 class Map {
   public:
 
-    Map ();
+    Map (cs237::Application *app);
     ~Map ();
 
   //! \brief load a map
@@ -32,35 +32,35 @@ class Map {
   //!        the map to \c std::clog.
   //! \return true if there are no errors, false if there was an error
   //!         reading the map.
-    bool LoadMap (std::string const &path, bool verbose=true);
+    bool load (std::string const &path, bool verbose=true);
 
   // return the descriptive name of the map
-    std::string Name () const { return this->_name; }
+    std::string name () const { return this->_name; }
   //! return the number of rows in the map's grid of cells (rows increase to the south)
     uint32_t nRows () const { return this->_nRows; }
   //! return the number of columns in the map's grid of cells (columns increase to the east)
     uint32_t nCols () const { return this->_nCols; }
   //! return the width of a cell in hScale units.  This value will be a power of 2.
   //! Note that the size measured in number of vertices is cellWidth()+1
-    uint32_t CellWidth () const { return this->_cellSize; }
+    uint32_t cellWidth () const { return this->_cellSize; }
   //! get the map width (east/west dimension) in hScale units (== nCols() * cellWidth())
-    uint32_t Width () const { return this->_width; }
+    uint32_t width () const { return this->_width; }
   //! get the map height (north/south dimension) in hScale units (== nRows() * cellWidth())
-    uint32_t Height () const { return this->_height; }
+    uint32_t height () const { return this->_height; }
   //! get the map horizontal scale
     float hScale () const { return this->_hScale; }
   //! get the map vertical scale
     float vScale () const { return this->_vScale; }
   //! get the base elevation (what 0 maps to)
-    float BaseElevation () const { return this->_baseElev; }
+    float baseElevation () const { return this->_baseElev; }
   //! get the minimum elevation in the map
-    float MinElevation () const { return this->_minElev; }
+    float minElevation () const { return this->_minElev; }
   //! get the maximum elevation in the map
-    float MaxElevation () const { return this->_maxElev; }
+    float maxElevation () const { return this->_maxElev; }
   //! get the bottom of the skybox
-    float SkyBottom () const { return this->_minSky; }
+    float skyBottom () const { return this->_minSky; }
   //! get the top of the skybox
-    float SkyTop () const { return this->_maxSky; }
+    float skyTop () const { return this->_maxSky; }
   //! does the map have a color-map texture?
     bool hasColorMap () const { return this->_hasColor; }
   //! does the map have a normal-map texture?
@@ -68,79 +68,80 @@ class Map {
   //! does the map have a water mask?
     bool hasWaterMask () const { return this->_hasWater; }
   //! unit direction vector toward sun
-    glm::vec3 SunDirection () const { return this->_sunDir; }
+    glm::vec3 sunDirection () const { return this->_sunDir; }
   //! intensity of sunlight
-    cs237::color3f SunIntensity () const { return this->_sunI; }
+    glm::vec3 sunIntensity () const { return this->_sunI; }
   //! intensity of ambient light
-    cs237::color3f AmbientIntensity () const { return this->_ambI; }
+    glm::vec3 ambientIntensity () const { return this->_ambI; }
   //! does the map have fog information?
     bool hasFog () const { return this->_hasFog; }
   //! return the fog color (assuming hasFog() is true)
-    cs237::color3f FogColor () const { return this->_fogColor; }
+    glm::vec3 fogColor () const { return this->_fogColor; }
   //! return the fog density constant (assuming hasFog() is true)
-    float FogDensity () const { return this->_fogDensity; }
+    float fogDensity () const { return this->_fogDensity; }
   //! does a map have an 'objects' directory?
     bool hasObjects () const { return (this->_objects != nullptr); }
 
   //! return the cell at grid cell (row, col)
-    class Cell *Cell (uint32_t row, uint32_t col) const;
+    class Cell *cell (uint32_t row, uint32_t col) const;
 
   //! return the grid cell that contains the position (x, 0, z)
-    class Cell *CellAt (double x, double z) const;
+    class Cell *cellAt (double x, double z) const;
 
   //! return the size of a cell in world coordinates (note that the Y component will be 0)
-    cs237::vec3d CellSize () const;
+    glm::dvec3 cellSize () const;
 
   //! return the NW corner of a cell in world coordinates (note that the Y component will be 0)
-    cs237::vec3d NWCellCorner (uint32_t row, uint32_t col) const;
+    glm::dvec3 nwCellCorner (uint32_t row, uint32_t col) const;
 
   //! return the north side's Z coordinate of the map in world coordinates
-    double North () const;
+    double north () const;
 
   //! return the east side's X coordinate of the map in world coordinates
-    double East () const;
+    double east () const;
 
   //! return the south side's Z coordinate of the map in world coordinates
-    double South () const;
+    double south () const;
 
   //! return the west side's X coordinate of the map in world coordinates
-    double West () const;
+    double west () const;
 
   //! the minimum cell width
-    static const uint32_t MIN_CELL_SIZE = (1 << 8);
+    static constexpr uint32_t kMinCellSize = (1 << 8);
   //! the maximum cell width
-    static const uint32_t MAX_CELL_SIZE = (1 << 14);
+    static constexpr uint32_t kMaxCellSize = (1 << 14);
 
   private:
+    cs237::Application *_app;   //!< application pointer
     std::string _path;          //!< path to the map directory
     std::string _name;          //!< title of map
-    float       _hScale;        //!< horizontal scale in meters
-    float       _vScale;        //!< vertical scale in meters
-    float       _baseElev;      //!< base elevation in meters
-    float       _minElev;       //!< minimum elevation in meters
-    float       _maxElev;       //!< maximum elevation in meters
-    float       _minSky;        //!< bottom of skybox in meters
-    float       _maxSky;        //!< top of skybox in meters
-    uint32_t    _width;         //!< map width in _hScale units; note that width measured
+    float _hScale;              //!< horizontal scale in meters
+    float _vScale;              //!< vertical scale in meters
+    float _baseElev;            //!< base elevation in meters
+    float _minElev;             //!< minimum elevation in meters
+    float _maxElev;             //!< maximum elevation in meters
+    float _minSky;              //!< bottom of skybox in meters
+    float _maxSky;              //!< top of skybox in meters
+    uint32_t _width;            //!< map width in _hScale units; note that width measured
                                 //!  in number of vertices is _width+1
-    uint32_t    _height;        //!< map height in _hScale units;  note that width measured
+    uint32_t _height;           //!< map height in _hScale units;  note that width measured
                                 //!  in number of vertices is _height+1
-    uint32_t    _cellSize;      //!< size of cell in _hScale units; must be a power of 2.
+    uint32_t _cellSize;         //!< size of cell in _hScale units; must be a power of 2.
                                 //!  Note that the size measured in number of vertices
                                 //!  is _cellSize+1
-    uint32_t    _nRows;         //!< height of map in number of cells
-    uint32_t    _nCols;         //!< width of map in number of cells
-    class Cell  **_grid;        //!< cells in column-major order
-    bool        _hasColor;      //!< true if the map has a color-map texture
-    bool        _hasNormals;    //!< true if the map has a normal-map texture
-    bool        _hasWater;      //!< true if the map has a water mask.
-    glm::vec3 _sunDir;       //!< unit vector pointing toward the sun
-    cs237::color3f _sunI;       //!< intensity of the sun light
-    cs237::color3f _ambI;       //!< intensity of ambient light
-    bool        _hasFog;        //!< true if the map specification includes fog info
-    cs237::color3f _fogColor;   //!< the color of the fog at full strength
-    float       _fogDensity;    //!< the density factor for the fog; will be 0 for no fog
-    Objects     *_objects;      //!< repository of object meshes and materials that
+    uint32_t _nRows;            //!< height of map in number of cells
+    uint32_t _nCols;            //!< width of map in number of cells
+    class Cell **_grid;         //!< cells in column-major order
+    bool _hasColor;             //!< true if the map has a color-map texture
+    bool _hasNormals;           //!< true if the map has a normal-map texture
+    bool _hasWater;             //!< true if the map has a water mask.
+    glm::vec3 _sunDir;          //!< unit vector pointing toward the sun
+    glm::vec3 _sunI;            //!< intensity of the sun light
+    glm::vec3 _ambI;            //!< intensity of ambient light
+    bool _hasFog;               //!< true if the map specification includes fog info
+    glm::vec3 _fogColor;        //!< the color of the fog at full strength
+    float _fogDensity;          //!< the density factor for the fog; will be 0 for no fog
+    Objects *_objects;          //!< repository of object meshes and materials that
                                 //!< are placed on the map
 
   //! the number of cells in the map
@@ -163,9 +164,7 @@ int ilog2 (uint32_t n);
 
 /***** Inline methods *****/
 
-// return a pointer to the cell at the given (row, column) of the map
-//
-inline class Cell *Map::Cell (uint32_t row, uint32_t col) const
+inline class Cell *Map::cell (uint32_t row, uint32_t col) const
 {
     if ((row < this->_nRows) && (col < this->_nCols)) {
         return this->_grid[this->_cellIdx(row, col)];
@@ -174,58 +173,50 @@ inline class Cell *Map::Cell (uint32_t row, uint32_t col) const
         return nullptr;
 }
 
-// return a pointer to the cell containing the give (x,z) coordinate
-//
-inline class Cell *Map::CellAt (double x, double z) const
+inline class Cell *Map::cellAt (double x, double z) const
 {
     if ((x < 0.0) || (z < 0.0))
         return nullptr;
     else
-        return this->Cell(
+        return this->cell(
             static_cast<uint32_t>(z / this->_hScale),
             static_cast<uint32_t>(x / this->_vScale));
 }
 
-// return the NW corner of a cell in world coordinates (note that the Y component will be 0)
-inline cs237::vec3d Map::NWCellCorner (uint32_t row, uint32_t col) const
+inline glm::dvec3 Map::nwCellCorner (uint32_t row, uint32_t col) const
 {
     assert ((row < this->_nRows) && (col < this->_nCols));
     double w = static_cast<double>(this->_hScale) * static_cast<double>(this->_cellSize);
-    return cs237::vec3d(
+    return glm::dvec3(
         w * static_cast<double>(col),
         0.0,
         w * static_cast<double>(row));
 }
 
-// return the north side's Z coordinate of the map in world coordinates
-inline double Map::North () const
+inline double Map::north () const
 {
     return 0.0;
 }
 
-// return the east side's X coordinate of the map in world coordinates
-inline double Map::East () const
+inline double Map::east () const
 {
     return static_cast<double>(_hScale) * static_cast<double>(this->_width);
 }
 
-// return the south side's Z coordinate of the map in world coordinates
-inline double Map::South () const
+inline double Map::south () const
 {
     return static_cast<double>(_hScale) * static_cast<double>(this->_height);
 }
 
-// return the west side's X coordinate of the map in world coordinates
-inline double Map::West () const
+inline double Map::west () const
 {
     return 0.0;
 }
 
-// return the size of a cell in world coordinates (note that the Y component will be 0)
-inline cs237::vec3d Map::CellSize () const
+inline glm::dvec3 Map::cellSize () const
 {
     double w = static_cast<double>(_hScale) * static_cast<double>(this->_cellSize);
-    return cs237::vec3d(w, 0.0, w);
+    return glm::dvec3(w, 0.0, w);
 }
 
 #endif // !_MAP_HPP_

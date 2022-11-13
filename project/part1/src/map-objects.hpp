@@ -49,7 +49,7 @@ class Objects {
 
     //! constructor
     //! \param map the map that contains the objects
-    Objects (const Map *map);
+    Objects (cs237::Application *app, const Map *map);
 
     ~Objects ();
 
@@ -76,12 +76,13 @@ class Objects {
     cs237::Texture2D *loadTexture2D (std::string const &name) const;
 
   private:
+    cs237::Application *_app;           //!< the application pointer
     const Map *_map;                    //!< the map
     std::string _objsDir;               //!< the 'objects' directory that holds OBJ, MTL,
                                         //!  and texture files.
     std::map<std::string, std::pair<cs237::AABBf, GObject *> > _objs;
                                         //!< object-mesh cache
-    std::map<std::string, cs237::texture2D *> _texs;
+    std::map<std::string, cs237::Texture2D *> _texs;
                                         //!< texture cache
 
     //! helper function for creating instances
@@ -93,9 +94,14 @@ class Objects {
     //! helper function for pre-loading textures for materials
     //! \param path the name of the directory holding the texture
     //! \param name the name of the texture source image file relative to path
-    //! \param genMipmaps if true, then glGenerateMipmap is called to generated
-    //!                   mipmaps and the sampling mode is set to LINEAR_MIPMAP_LINEAR
-    void _loadTexture (std::string path, std::string name, bool genMipmaps = false);
+    //! \param genMipmaps if true, then mipmaps are generated
+    //! \param sRGB if true, then the image data is assumed to be in sRGB color space;
+    //!             otherwise it is assumed to be in linear color space.
+    void _loadTexture (
+        std::string path,
+        std::string name,
+        bool genMipmaps = false,
+        bool sRGB = true);
 };
 
 #endif //! _MAP_OBJECTS_HPP_

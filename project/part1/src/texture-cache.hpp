@@ -29,10 +29,10 @@ class Texture {
 
   //! activate the texture; this operation is a hint to the texture
   //! cache that the texture is going to be used soon.
-    void Activate ();
+    void activate ();
 
   //! bind this texture to the given texture unit (0 based)
-    void Use (int txtUnit)
+    void use (int txtUnit)
     {
         if (! this->_active) {
             this->Activate();
@@ -42,10 +42,10 @@ class Texture {
     }
 
   //! hint to the texture cache that this texture is not needed.
-    void Release ();
+    void release ();
 
   private:
-    cs237::texture2D    *_txt;          //!< the OpenGL texture (or nullptr, if not resident)
+    cs237::Texture2D    *_txt;          //!< the OpenGL texture (or nullptr, if not resident)
     TextureCache        *_cache;        //!< the cache that this belongs to
     tqt::TextureQTree   *_tree;         //!< the texture quadtree from which this texture comes
     uint32_t            _level;         //!< the TQT level of this texture
@@ -65,15 +65,15 @@ class Texture {
 class TextureCache {
   public:
 
-    TextureCache();
-    ~TextureCache();
+    TextureCache ();
+    ~TextureCache ();
 
   //! make a texture handle for the specified quad in the texture quad tree
-    Texture *Make (tqt::TextureQTree *tree, int level, int row, int col);
+    Texture *make (tqt::TextureQTree *tree, int level, int row, int col);
 
   //! mark the beginning of a new frame; the texture cache uses this information to
   //! track LRU information
-    void NewFrame () { this->_clock++; }
+    void newFrame () { this->_clock++; }
 
   private:
     uint64_t    _residentLimit; //!< soft upper bound on the size of GL resident textures
@@ -126,13 +126,13 @@ class TextureCache {
     std::vector<Texture *> _inactive;   //!< inactive textures that are loaded, but may be reused.
 
   //! record that the given texture is now active
-    void _MakeActive (Texture *txt);
+    void _makeActive (Texture *txt);
 
   //! record that the given texture is now inactive
-    void _Release (Texture *txt);
+    void _release (Texture *txt);
 
-  //! allocate an OpenGL texture, either by reusing a free texture or by creating a new one.
-    cs237::texture2D *_AllocTex2D (cs237::image2d *img);
+  //! allocate a Vulkan texture, either by reusing a free texture or by creating a new one.
+    cs237::Texture2D *_allocTex2D (cs237::Image2D *img);
 
     friend class Texture;
 };

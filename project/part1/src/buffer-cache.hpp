@@ -47,9 +47,11 @@ struct VAO {
 
         vkCmdDrawIndexed(cmdBuf, this->nIndices(), 1, 0, 0, 0);
 
+#ifdef XXX
         CS237_CHECK( glBindVertexArray (this->_id) );
         CS237_CHECK( glDrawElements (GL_TRIANGLE_STRIP, this->_nIndices, GL_UNSIGNED_SHORT, 0) );
         CS237_CHECK( glBindVertexArray (0) );
+#endif
     }
 
 };

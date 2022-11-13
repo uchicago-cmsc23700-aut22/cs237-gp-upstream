@@ -343,7 +343,8 @@ void Window::_createSwapChain (bool depth, bool stencil)
             extent.width, extent.height,
             dsFormat,
             VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            1);
         dsBuf.imageMem = this->_app->_allocImageMemory(
             dsBuf.image,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);

@@ -44,7 +44,7 @@ class Cell {
   //! the number of levels of detail supported by this cell
     int depth () const { return this->_nLODs; }
   //! the width of this cell in hScale units.  The number of vertices across will be width()+1
-    int width () const { return this->_map->CellWidth(); }
+    int width () const { return this->_map->cellWidth(); }
   //! get the map horizontal scale
     float hScale () const { return this->_map->_hScale; }
   //! get the map vertical scale
@@ -116,7 +116,7 @@ struct HFVertex {
         attrs[0].binding = 0;
         attrs[0].location = 0;
         attrs[0].format = VK_FORMAT_R16G16B16A16_SSCALED;
-        attrs[0].offset = offsetof(HFVertex, pos);
+        attrs[0].offset = 0;
 
         return attrs;
     }
@@ -150,7 +150,7 @@ class Tile {
   //! the column of this tile's NW vertex in its cell
     uint32_t nwCol () const { return this->_col; }
   //! the width of this cell in hScale units.  The number of vertices across will be width()+1
-    uint32_t width () const { return this->_cell->Width() >> this->_lod; }
+    uint32_t width () const { return this->_cell->width() >> this->_lod; }
   //! the level of detail of this tile (0 is coarsest)
     int lod () const { return this->_lod; }
 
@@ -208,7 +208,7 @@ inline class Tile *Tile::child (int i) const
 {
     assert ((0 <= i) && (i < 4));
     if (this->_lod+1 < this->_cell->depth())
-        return &(this->_cell->tile(QTree::nwChild(this->_id) + i));
+        return &(this->_cell->tile(qtree::nwChild(this->_id) + i));
     else
         return nullptr;
 }
