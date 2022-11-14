@@ -14,15 +14,17 @@
 #ifndef _TEXTURE_CACHE_HPP_
 #define _TEXTURE_CACHE_HPP_
 
+#include "cs237.hpp"
 #include "tqt.hpp"
 #include <unordered_map>
 #include <vector>
 
 class TextureCache;
 
-class Texture {
+//! A texture for a tile in the chunk quad treexs
+class TileTexture {
   public:
-    ~Texture ();
+    ~TileTexture ();
 
   //! is this texture active?
     bool isActive () const { return this->_active; }
@@ -35,18 +37,20 @@ class Texture {
     void use (int txtUnit)
     {
         if (! this->_active) {
-            this->Activate();
+            this->activate();
         }
-        CS237_CHECK( glActiveTexture (GL_TEXTURE0 + txtUnit) );
-        this->_txt->Bind();
+//        CS237_CHECK( glActiveTexture (GL_TEXTURE0 + txtUnit) );
+//        this->_txt->Bind();
     }
 
   //! hint to the texture cache that this texture is not needed.
     void release ();
 
   private:
-    cs237::Texture2D    *_txt;          //!< the OpenGL texture (or nullptr, if not resident)
-    TextureCache        *_cache;        //!< the cache that this belongs to
+    cs237::Texture2D    *_txt;          //!< the Vulkan texture (or nullptr, if not resident)
+    VkSampler           _sampler;       //!< the sampler for accessing the texture from the
+                                        //!< shaders
+    TextureCache        *_cache;        //!< the cache that this texture belongs to
     tqt::TextureQTree   *_tree;         //!< the texture quadtree from which this texture comes
     uint32_t            _level;         //!< the TQT level of this texture
     uint32_t            _row;           //!< the TQT row of this texture
@@ -55,7 +59,7 @@ class Texture {
     int                 _activeIdx;     //!< index of this texture in the cache's _active vector
     bool                _active;        //!< true when this texture is in use
 
-    Texture (TextureCache *cache, tqt::TextureQTree *tree, int level, int row, int col);
+    TileTexture (TextureCache *cache, tqt::TextureQTree *tree, int level, int row, int col);
 
     friend class TextureCache;
     friend struct TxtCompare;
@@ -65,20 +69,21 @@ class Texture {
 class TextureCache {
   public:
 
-    TextureCache ();
+    TextureCache (cs237::Application *app);
     ~TextureCache ();
 
   //! make a texture handle for the specified quad in the texture quad tree
-    Texture *make (tqt::TextureQTree *tree, int level, int row, int col);
+    TileTexture *make (tqt::TextureQTree *tree, int level, int row, int col);
 
   //! mark the beginning of a new frame; the texture cache uses this information to
   //! track LRU information
     void newFrame () { this->_clock++; }
 
   private:
-    uint64_t    _residentLimit; //!< soft upper bound on the size of GL resident textures
-    uint64_t    _residentSzb;   //!< estimate of the size of GL resident textures
-    uint32_t    _clock;         //!< counts number of frames
+    cs237::Application *_app;   //!< application pointer
+    uint64_t _residentLimit;    //!< soft upper bound on the size of GL resident textures
+    uint64_t _residentSzb;      //!< estimate of the size of GL resident textures
+    uint32_t _clock;            //!< counts number of frames
 
   //! keys for hashing texture specifications
     struct Key {
@@ -113,28 +118,28 @@ class TextureCache {
 
   // for ordering textures by timestamp
     struct TxtCompare {
-        bool operator() (const Texture &lhs, const Texture &rhs) const
+        bool operator() (const TileTexture &lhs, const TileTexture &rhs) const
         {
             return (lhs._lastUsed > rhs._lastUsed);
         }
     };
 
-    typedef std::unordered_map<Key,Texture *,Hash,Equal> TextureTbl;
+    typedef std::unordered_map<Key,TileTexture *,Hash,Equal> TextureTbl;
 
-    TextureTbl _textureTbl;             //!< mapping from TQT spec to Texture
-    std::vector<Texture *> _active;     //!< active textures
-    std::vector<Texture *> _inactive;   //!< inactive textures that are loaded, but may be reused.
+    TextureTbl _textureTbl;             //!< mapping from TQT spec to TileTexture
+    std::vector<TileTexture *> _active; //!< active textures
+    std::vector<TileTexture *> _inactive; //!< inactive textures that are loaded, but may be reused.
 
   //! record that the given texture is now active
-    void _makeActive (Texture *txt);
+    void _makeActive (TileTexture *txt);
 
   //! record that the given texture is now inactive
-    void _release (Texture *txt);
+    void _release (TileTexture *txt);
 
   //! allocate a Vulkan texture, either by reusing a free texture or by creating a new one.
     cs237::Texture2D *_allocTex2D (cs237::Image2D *img);
 
-    friend class Texture;
+    friend class TileTexture;
 };
 
 #endif // !_TEXTURE_CACHE_HPP_
