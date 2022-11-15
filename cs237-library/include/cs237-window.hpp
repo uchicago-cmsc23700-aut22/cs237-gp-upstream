@@ -277,25 +277,6 @@ protected:
         int32_t x, int32_t y,
         int32_t wid, int32_t ht);
 
-    //! \brief create and initialize a command buffer
-    //! \return the fresh command buffer
-    VkCommandBuffer _newCommandBuf () { return this->_app->_newCommandBuf(); }
-
-    //! \brief begin recording commands in the give command buffer
-    void _beginCommands (VkCommandBuffer cmdBuf) { this->_app->_beginCommands(cmdBuf); }
-
-    //! \brief end the recording of commands in the give command buffer
-    //! \param cmdBuf the command buffer that we are recording in
-    void _endCommands (VkCommandBuffer cmdBuf) { this->_app->_endCommands(cmdBuf); }
-
-    //! \brief end the commands and submit the buffer to the graphics queue.
-    //! \param cmdBuf the command buffer to submit
-    void _submitCommands (VkCommandBuffer cmdBuf) { this->_app->_submitCommands(cmdBuf); }
-
-    //! \brief free the command buffer
-    //! \param cmdBuf the command buffer to free
-    void _freeCommandBuf (VkCommandBuffer & cmdBuf) { this->_app->_freeCommandBuf(cmdBuf); }
-
 };
 
 } // namespace cs237

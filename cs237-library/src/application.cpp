@@ -465,9 +465,9 @@ void Application::_transitionImageLayout (
     VkImageLayout oldLayout,
     VkImageLayout newLayout)
 {
-    VkCommandBuffer cmdBuf = this->_newCommandBuf();
+    VkCommandBuffer cmdBuf = this->newCommandBuf();
 
-    this->_beginCommands(cmdBuf);
+    this->beginCommands(cmdBuf, true);
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -512,25 +512,26 @@ void Application::_transitionImageLayout (
         0, nullptr,
         1, &barrier);
 
-    this->_endCommands(cmdBuf);
-    this->_submitCommands(cmdBuf);
-    this->_freeCommandBuf(cmdBuf);
+    this->endCommands(cmdBuf);
+    this->submitCommands(cmdBuf);
+    this->freeCommandBuf(cmdBuf);
 
 }
 
-void Application::_copyBuffer (VkBuffer srcBuf, VkBuffer dstBuf, size_t size)
+void Application::_copyBuffer (VkBuffer srcBuf, VkBuffer dstBuf, size_t offset, size_t size)
 {
-    VkCommandBuffer cmdBuf = this->_newCommandBuf();
+    VkCommandBuffer cmdBuf = this->newCommandBuf();
 
-    this->_beginCommands(cmdBuf);
+    this->beginCommands(cmdBuf, true);
 
     VkBufferCopy copyRegion{};
+    copyRegion.dstOffset = offset;
     copyRegion.size = size;
     vkCmdCopyBuffer(cmdBuf, srcBuf, dstBuf, 1, &copyRegion);
 
-    this->_endCommands(cmdBuf);
-    this->_submitCommands(cmdBuf);
-    this->_freeCommandBuf(cmdBuf);
+    this->endCommands(cmdBuf);
+    this->submitCommands(cmdBuf);
+    this->freeCommandBuf(cmdBuf);
 
 }
 
@@ -538,9 +539,9 @@ void Application::_copyBufferToImage (
         VkImage dstImg, VkBuffer srcBuf, size_t size,
         uint32_t wid, uint32_t ht, uint32_t depth)
 {
-    VkCommandBuffer cmdBuf = this->_newCommandBuf();
+    VkCommandBuffer cmdBuf = this->newCommandBuf();
 
-    this->_beginCommands(cmdBuf);
+    this->beginCommands(cmdBuf);
 
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
@@ -557,9 +558,9 @@ void Application::_copyBufferToImage (
         cmdBuf, srcBuf, dstImg,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-    this->_endCommands(cmdBuf);
-    this->_submitCommands(cmdBuf);
-    this->_freeCommandBuf(cmdBuf);
+    this->endCommands(cmdBuf);
+    this->submitCommands(cmdBuf);
+    this->freeCommandBuf(cmdBuf);
 
 }
 
@@ -576,7 +577,7 @@ void Application::_initCommandPool ()
     }
 }
 
-VkCommandBuffer Application::_newCommandBuf ()
+VkCommandBuffer Application::newCommandBuf ()
 {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -593,24 +594,27 @@ VkCommandBuffer Application::_newCommandBuf ()
     return cmdBuf;
 }
 
-void Application::_beginCommands (VkCommandBuffer cmdBuf)
+void Application::beginCommands (VkCommandBuffer cmdBuf, bool oneTime)
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    if (oneTime) {
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    }
 
     if (vkBeginCommandBuffer(cmdBuf, &beginInfo) != VK_SUCCESS) {
         ERROR("unable to begin recording command buffer!");
     }
 }
 
-void Application::_endCommands (VkCommandBuffer cmdBuf)
+void Application::endCommands (VkCommandBuffer cmdBuf)
 {
     if (vkEndCommandBuffer(cmdBuf) != VK_SUCCESS) {
         ERROR("unable to record command buffer!");
     }
 }
 
-void Application::_submitCommands (VkCommandBuffer cmdBuf)
+void Application::submitCommands (VkCommandBuffer cmdBuf)
 {
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -670,6 +674,111 @@ std::vector<VkLayerProperties> Application::supportedLayers ()
     vkEnumerateInstanceLayerProperties(&layerCount, layers.data());
     return layers;
 }
+
+VkPipeline Application::createPipeline (
+    cs237::Shaders *shaders,
+    VkPipelineVertexInputStateCreateInfo const &vertexInfo,
+    VkPrimitiveTopology prim,
+    bool primRestart,
+    VkPolygonMode polyMode,
+    VkCullModeFlags cullMode,
+    VkPipelineLayout layout,
+    VkRenderPass renderPass,
+    uint32_t subPass,
+    std::vector<VkDynamicState> const &dynamic)
+{
+    VkPipelineInputAssemblyStateCreateInfo asmInfo{};
+    asmInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    asmInfo.topology = prim;
+    asmInfo.primitiveRestartEnable = primRestart ? VK_TRUE : VK_FALSE;
+
+    VkPipelineViewportStateCreateInfo viewportState{};
+    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.viewportCount = 1;
+    viewportState.scissorCount = 1;
+
+    VkPipelineRasterizationStateCreateInfo rasterizer{};
+    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizer.depthClampEnable = VK_FALSE;
+    rasterizer.rasterizerDiscardEnable = VK_TRUE;
+    rasterizer.polygonMode = polyMode;
+    rasterizer.lineWidth = 1.0f;
+    rasterizer.cullMode = cullMode;
+    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterizer.depthBiasEnable = VK_FALSE;
+
+    VkPipelineMultisampleStateCreateInfo multisampling{};
+    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampling.sampleShadingEnable = VK_FALSE;
+    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    VkPipelineDepthStencilStateCreateInfo *pDepthStencil;
+    // set up the depth/stencil-buffer state
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable = VK_TRUE;
+    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    depthStencil.depthBoundsTestEnable = VK_FALSE;
+    depthStencil.stencilTestEnable = VK_FALSE;
+    pDepthStencil = &depthStencil;
+
+    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+    colorBlendAttachment.colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT |
+        VK_COLOR_COMPONENT_G_BIT |
+        VK_COLOR_COMPONENT_B_BIT |
+        VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachment.blendEnable = VK_FALSE;
+
+    VkPipelineColorBlendStateCreateInfo colorBlending{};
+    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlending.logicOpEnable = VK_FALSE;
+    colorBlending.logicOp = VK_LOGIC_OP_COPY;
+    colorBlending.attachmentCount = 1;
+    colorBlending.pAttachments = &colorBlendAttachment;
+    colorBlending.blendConstants[0] = 0.0f;
+    colorBlending.blendConstants[1] = 0.0f;
+    colorBlending.blendConstants[2] = 0.0f;
+    colorBlending.blendConstants[3] = 0.0f;
+
+    VkPipelineDynamicStateCreateInfo dynamicState{};
+    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    if (dynamic.size() > 0) {
+        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamic.size());
+        dynamicState.pDynamicStates = dynamic.data();
+    } else {
+        dynamicState.dynamicStateCount = 0;
+    }
+
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount = shaders->numStages();
+    pipelineInfo.pStages = shaders->stages();
+    pipelineInfo.pVertexInputState = &vertexInfo;
+    pipelineInfo.pInputAssemblyState = &asmInfo;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pDepthStencilState = &depthStencil;
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = &dynamicState;
+    pipelineInfo.layout = layout;
+    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.subpass = 0;
+    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+    VkPipeline pipeline;
+    auto sts = vkCreateGraphicsPipelines(
+        this->_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+        &pipeline);
+    if (sts != VK_SUCCESS) {
+        ERROR("unable to create graphics pipeline!");
+    }
+
+    return pipeline;
+}
+
 
 /******************** local utility functions ********************/
 

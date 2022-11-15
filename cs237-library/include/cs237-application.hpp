@@ -26,7 +26,6 @@ class Application {
 
 friend class Window;
 friend class Buffer;
-friend class MemoryObj;
 friend class __detail::TextureBase;
 friend class Texture1D;
 friend class Texture2D;
@@ -123,6 +122,56 @@ public:
         return props;
     }
 
+    //! \brief Allocate a graphics pipeline
+    //! \param shaders     shaders for the pipeline
+    //! \param vertexInfo  vertex info
+    //! \param prim        primitive topology
+    //! \param primRestart true if primitive restart should be enabled
+    //! \param polyMode    polygon mode
+    //! \param cullMode    primitive culling mode
+    //! \param layout      the pipeline layout
+    //! \param renderPass  a render pass that is compatible with the render pass to be used
+    //! \param subPass     the index of the subpass in the render pass where the pipeline
+    //!                    will be used
+    //! \param dynamic     vector that specifies which parts of the pipeline can be
+    //!                    dynamically set during the
+    //! \return the created pipeline
+    VkPipeline createPipeline (
+        cs237::Shaders *shaders,
+        VkPipelineVertexInputStateCreateInfo const &vertexInfo,
+        VkPrimitiveTopology prim,
+        bool primRestart,
+        VkPolygonMode polyMode,
+        VkCullModeFlags cullMode,
+        VkPipelineLayout layout,
+        VkRenderPass renderPass,
+        uint32_t subPass,
+        std::vector<VkDynamicState> const &dynamic);
+
+    //! \brief create and initialize a command buffer
+    //! \return the fresh command buffer
+    VkCommandBuffer newCommandBuf ();
+
+    //! \brief begin recording commands in the given command buffer
+    //! \param cmdBuf the command buffer to use for recording commands
+    //! \param oneTime true if this command buffer is only going to be used once
+    void beginCommands (VkCommandBuffer cmdBuf, bool oneTime = false);
+
+    //! \brief end the recording of commands in the give command buffer
+    //! \param cmdBuf the command buffer that we are recording in
+    void endCommands (VkCommandBuffer cmdBuf);
+
+    //! \brief end the commands and submit the buffer to the graphics queue.
+    //! \param cmdBuf the command buffer to submit
+    void submitCommands (VkCommandBuffer cmdBuf);
+
+    //! \brief free the command buffer
+    //! \param cmdBuf the command buffer to free
+    void freeCommandBuf (VkCommandBuffer & cmdBuf)
+    {
+        vkFreeCommandBuffers(this->_device, this->_cmdPool, 1, &cmdBuf);
+    }
+
 protected:
     //! information about queue families
     template <typename T>
@@ -192,6 +241,9 @@ protected:
         std::vector<VkFormat> candidates,
         VkImageTiling tiling,
         VkFormatFeatureFlags features);
+
+    //! \brief allocate the command pool for the application
+    void _initCommandPool ();
 
     //! \brief A helper function to identify the best depth/stencil-buffer attachment
     //!        format for the device
@@ -266,8 +318,9 @@ protected:
     //! \brief copy data from one buffer to another using the GPU
     //! \param dstBuf the destination buffer
     //! \param srcBuf the source buffer
+    //! \param offset the offset in the destination buffer to copy to
     //! \param size   the size (in bytes) of data to copy
-    void _copyBuffer (VkBuffer dstBuf, VkBuffer srcBuf, size_t size);
+    void _copyBuffer (VkBuffer dstBuf, VkBuffer srcBuf, size_t offset, size_t sz);
 
     //! \brief copy data from a buffer to an image
     //! \param dstImg the destination image
@@ -279,31 +332,6 @@ protected:
     void _copyBufferToImage (
         VkImage dstImg, VkBuffer srcBuf, size_t size,
         uint32_t wid, uint32_t ht=1, uint32_t depth=1);
-
-    //! \brief allocate the command pool for the window
-    void _initCommandPool ();
-
-    //! \brief create and initialize a command buffer
-    //! \return the fresh command buffer
-    VkCommandBuffer _newCommandBuf ();
-
-    //! \brief begin recording commands in the give command buffer
-    void _beginCommands (VkCommandBuffer cmdBuf);
-
-    //! \brief end the recording of commands in the give command buffer
-    //! \param cmdBuf the command buffer that we are recording in
-    void _endCommands (VkCommandBuffer cmdBuf);
-
-    //! \brief end the commands and submit the buffer to the graphics queue.
-    //! \param cmdBuf the command buffer to submit
-    void _submitCommands (VkCommandBuffer cmdBuf);
-
-    //! \brief free the command buffer
-    //! \param cmdBuf the command buffer to free
-    void _freeCommandBuf (VkCommandBuffer & cmdBuf)
-    {
-        vkFreeCommandBuffers(this->_device, this->_cmdPool, 1, &cmdBuf);
-    }
 
 };
 

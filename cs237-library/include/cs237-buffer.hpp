@@ -1,5 +1,7 @@
 /*! \file cs237-buffer.hpp
  *
+ * Buffer objects with backing device memory.
+ *
  * Support code for CMSC 23700 Autumn 2022.
  *
  * \author John Reppy
@@ -19,58 +21,37 @@
 
 namespace cs237 {
 
-//! A base class for buffer objects of all kinds
+//! A base class for buffer objects of all kinds backed by device memory
 class Buffer {
 public:
+
+    //! return the Vulkan handle for the buffer
     VkBuffer vkBuffer () const { return this->_buf; }
-
-    void bindMemory (MemoryObj *memObj)
-    {
-        auto sts = vkBindBufferMemory(
-            this->_app->_device,
-            this->_buf,
-            memObj->_mem,
-            0);
-        if (sts != VK_SUCCESS) {
-            ERROR ("unable to bind buffer to memory object.");
-        }
-    }
-
-    //! get the memory requirements of this buffer
-    VkMemoryRequirements requirements ()
-    {
-        VkMemoryRequirements reqs;
-        vkGetBufferMemoryRequirements(this->_app->_device, this->_buf, &reqs);
-        return reqs;
-    }
 
 protected:
     Application *_app;          //!< the application
-    VkBuffer    _buf;           //!< the Vulkan buffer object
+    VkBuffer _buf;              //!< the Vulkan buffer object
+    VkDeviceMemory _mem;        //!< device memory for the buffer
+    size_t _sz;                 //!< size of the buffer
 
-    Buffer (Application *app, VkBufferUsageFlags usage, size_t sz)
-      : _app(app)
-    {
-        VkBufferCreateInfo info{};
-        info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        info.pNext = nullptr;
-        info.usage = usage;
-        info.size = sz;
-        info.queueFamilyIndexCount = 0;
-        info.pQueueFamilyIndices = nullptr;
-        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        info.flags = 0;
+    Buffer (Application *app, VkBufferUsageFlags usage, VkMemoryPropertyFlags props, size_t sz);
+    ~Buffer ();
 
-        auto sts = vkCreateBuffer (app->_device, &info, nullptr, &this->_buf);
-        if (sts != VK_SUCCESS) {
-            ERROR ("unable to create buffer object.");
-        }
-    }
+    //! \brief copy data to the buffer using a staging buffer.
+    //! \param src      address of data to copy
+    //! \param offset   offset from the beginning of the destination buffer to copy
+    //!                 the data to
+    //! \param sz       size in bytes of the data to copy
+    void _stageDataToBuffer (const void *src, size_t offset, size_t sz);
 
-    ~Buffer ()
-    {
-        vkDestroyBuffer (this->_app->_device, this->_buf, nullptr);
-    }
+    //! directly copy data to a subrange of the device memory object
+    //! \param src      address of data to copy
+    //! \param offset   offset from the beginning of the memory object to copy
+    //!                 the data to
+    //! \param sz       size in bytes of the data to copy
+    //!
+    //! Note that this operation only works for buffers that are "host visible".
+    void _copyDataToBuffer (const void *src, size_t offset, size_t sz);
 
 };
 
@@ -78,23 +59,68 @@ protected:
 class VertexBuffer : public Buffer {
 public:
 
-    VertexBuffer (Application *app, size_t sz)
-      : Buffer (app, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, sz)
-    { }
+    //! VertexBuffer constuctor
+    //! \param app   the application pointer
+    //! \param sz    the size (in bytes) of the buffer
+    //! \param data  optional pointer to data for initialization
+    VertexBuffer (Application *app, size_t sz, void *data = nullptr);
+
+    //! \brief copy data to the buffer; the amount of data copied is the size of the buffer
+    //! \param data the source of the data to copy to the buffer
+    void copyTo (void *data)
+    {
+        this->_stageDataToBuffer(data, 0, this->_sz);
+    }
+
+    //! \brief copy data to the buffer
+    //! \param data   the source of the data to copy to the buffer
+    //! \param offset the destination offset in the buffer
+    //! \param sz     the size (in bytes) of data to copy
+    void copyTo (void *data, size_t offset, size_t sz)
+    {
+        assert (offset + sz <= this->_sz);
+        this->_stageDataToBuffer(data, offset, sz);
+    }
+
 };
 
 //! Buffer class for index data
 class IndexBuffer : public Buffer {
 public:
 
-    IndexBuffer (Application *app, uint32_t nIndices, size_t sz)
-      : Buffer (app, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, sz), _nIndices(nIndices)
-    { }
+    //! IndexBuffer constuctor
+    //! \param app  the application pointer
+    //! \param nIndices  the number of indices in the buffer
+    //! \param ty        the type of index (8, 16, or 32 bit)
+    //! \param data      optional pointer to data for initialization
+    IndexBuffer (Application *app, uint32_t nIndices, VkIndexType ty, void *data = nullptr);
 
+    //! return the number of indices
     uint32_t nIndices () const { return this->_nIndices; }
+
+    //! return the type of indices
+    VkIndexType indexTy () const { return this->_ty; }
+
+    //! \brief copy data to the buffer; the amount of data copied is the size of the buffer
+    //! \param data the source of the data to copy to the buffer
+    void copyTo (void *data)
+    {
+        this->_stageDataToBuffer(data, 0, this->_sz);
+    }
+
+    //! \brief copy data to the buffer
+    //! \param data   the source of the data to copy to the buffer
+    //! \param offset the destination offset in the buffer
+    //! \param sz     the size (in bytes) of data to copy
+    void copyTo (void *data, size_t offset, size_t sz)
+    {
+        assert (offset + sz <= this->_sz);
+        this->_stageDataToBuffer(data, offset, sz);
+    }
 
 private:
     uint32_t _nIndices;
+    VkIndexType _ty;
 
 };
 
@@ -102,9 +128,28 @@ private:
 class UniformBuffer : public Buffer {
 public:
 
-    UniformBuffer (Application *app, size_t sz)
-      : Buffer (app, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sz)
-    { }
+    //! IndexBuffer constuctor
+    //! \param app  the application pointer
+    //! \param sz    the size (in bytes) of the buffer
+    UniformBuffer (Application *app, size_t sz);
+
+    //! \brief copy data to the buffer; the amount of data copied is the size of the buffer
+    //! \param data the source of the data to copy to the buffer
+    void copyTo (void *data)
+    {
+        this->_copyDataToBuffer(data, 0, this->_sz);
+    }
+
+    //! \brief copy data to the buffer
+    //! \param data   the source of the data to copy to the buffer
+    //! \param offset the destination offset in the buffer
+    //! \param sz     the size (in bytes) of data to copy
+    void copyTo (void *data, size_t offset, size_t sz)
+    {
+        assert (offset + sz <= this->_sz);
+        this->_copyDataToBuffer(data, offset, sz);
+    }
+
 };
 
 } // namespace cs237

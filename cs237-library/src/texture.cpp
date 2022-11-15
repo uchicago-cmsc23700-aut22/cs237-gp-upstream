@@ -140,9 +140,9 @@ void Texture2D::_generateMipMaps ()
         ERROR("texture image format does not support linear blitting!");
     }
 
-    VkCommandBuffer cmdBuf = this->_app->_newCommandBuf();
+    VkCommandBuffer cmdBuf = this->_app->newCommandBuf();
 
-    this->_app->_beginCommands(cmdBuf);
+    this->_app->beginCommands(cmdBuf);
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -221,9 +221,9 @@ void Texture2D::_generateMipMaps ()
         0, nullptr,
         1, &barrier);
 
-    this->_app->_endCommands(cmdBuf);
-    this->_app->_submitCommands(cmdBuf);
-    this->_app->_freeCommandBuf(cmdBuf);
+    this->_app->endCommands(cmdBuf);
+    this->_app->submitCommands(cmdBuf);
+    this->_app->freeCommandBuf(cmdBuf);
 
 }
 

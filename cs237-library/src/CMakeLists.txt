@@ -11,10 +11,10 @@
 set(SRCS
   aabb.cpp
   application.cpp
+  buffer.cpp
   image.cpp
   json.cpp
   json-parser.cpp
-  memory-obj.cpp
   mtl-reader.cpp
   obj-reader.cpp
   obj.cpp
