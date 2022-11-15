@@ -63,11 +63,11 @@ public:
     //! \param app   the application pointer
     //! \param sz    the size (in bytes) of the buffer
     //! \param data  optional pointer to data for initialization
-    VertexBuffer (Application *app, size_t sz, void *data = nullptr);
+    VertexBuffer (Application *app, size_t sz, const void *data = nullptr);
 
     //! \brief copy data to the buffer; the amount of data copied is the size of the buffer
     //! \param data the source of the data to copy to the buffer
-    void copyTo (void *data)
+    void copyTo (const void *data)
     {
         this->_stageDataToBuffer(data, 0, this->_sz);
     }
@@ -76,9 +76,8 @@ public:
     //! \param data   the source of the data to copy to the buffer
     //! \param offset the destination offset in the buffer
     //! \param sz     the size (in bytes) of data to copy
-    void copyTo (void *data, size_t offset, size_t sz)
+    void copyTo (const void *data, size_t offset, size_t sz)
     {
-        assert (offset + sz <= this->_sz);
         this->_stageDataToBuffer(data, offset, sz);
     }
 
@@ -93,7 +92,7 @@ public:
     //! \param nIndices  the number of indices in the buffer
     //! \param ty        the type of index (8, 16, or 32 bit)
     //! \param data      optional pointer to data for initialization
-    IndexBuffer (Application *app, uint32_t nIndices, VkIndexType ty, void *data = nullptr);
+    IndexBuffer (Application *app, uint32_t nIndices, VkIndexType ty, const void *data = nullptr);
 
     //! return the number of indices
     uint32_t nIndices () const { return this->_nIndices; }
@@ -103,7 +102,7 @@ public:
 
     //! \brief copy data to the buffer; the amount of data copied is the size of the buffer
     //! \param data the source of the data to copy to the buffer
-    void copyTo (void *data)
+    void copyTo (const void *data)
     {
         this->_stageDataToBuffer(data, 0, this->_sz);
     }
@@ -112,9 +111,8 @@ public:
     //! \param data   the source of the data to copy to the buffer
     //! \param offset the destination offset in the buffer
     //! \param sz     the size (in bytes) of data to copy
-    void copyTo (void *data, size_t offset, size_t sz)
+    void copyTo (const void *data, size_t offset, size_t sz)
     {
-        assert (offset + sz <= this->_sz);
         this->_stageDataToBuffer(data, offset, sz);
     }
 
@@ -135,7 +133,7 @@ public:
 
     //! \brief copy data to the buffer; the amount of data copied is the size of the buffer
     //! \param data the source of the data to copy to the buffer
-    void copyTo (void *data)
+    void copyTo (const void *data)
     {
         this->_copyDataToBuffer(data, 0, this->_sz);
     }
@@ -144,9 +142,8 @@ public:
     //! \param data   the source of the data to copy to the buffer
     //! \param offset the destination offset in the buffer
     //! \param sz     the size (in bytes) of data to copy
-    void copyTo (void *data, size_t offset, size_t sz)
+    void copyTo (const void *data, size_t offset, size_t sz)
     {
-        assert (offset + sz <= this->_sz);
         this->_copyDataToBuffer(data, offset, sz);
     }
 

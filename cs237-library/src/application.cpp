@@ -525,6 +525,7 @@ void Application::_copyBuffer (VkBuffer srcBuf, VkBuffer dstBuf, size_t offset, 
     this->beginCommands(cmdBuf, true);
 
     VkBufferCopy copyRegion{};
+    copyRegion.srcOffset = 0;
     copyRegion.dstOffset = offset;
     copyRegion.size = size;
     vkCmdCopyBuffer(cmdBuf, srcBuf, dstBuf, 1, &copyRegion);
@@ -700,7 +701,7 @@ VkPipeline Application::createPipeline (
     VkPipelineRasterizationStateCreateInfo rasterizer{};
     rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     rasterizer.depthClampEnable = VK_FALSE;
-    rasterizer.rasterizerDiscardEnable = VK_TRUE;
+    rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = polyMode;
     rasterizer.lineWidth = 1.0f;
     rasterizer.cullMode = cullMode;

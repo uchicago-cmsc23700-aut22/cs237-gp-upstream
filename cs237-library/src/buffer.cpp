@@ -15,24 +15,8 @@
 namespace cs237 {
 
 Buffer::Buffer (Application *app, VkBufferUsageFlags usage, VkMemoryPropertyFlags props, size_t sz)
-  : _app(app)
+  : _app(app), _buf(app->_createBuffer (sz, usage)), _mem(VK_NULL_HANDLE), _sz(sz)
 {
-    // allocate the VkBuffer
-    VkBufferCreateInfo info{};
-    info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    info.pNext = nullptr;
-    info.usage = usage;
-    info.size = sz;
-    info.queueFamilyIndexCount = 0;
-    info.pQueueFamilyIndices = nullptr;
-    info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    info.flags = 0;
-
-    auto sts = vkCreateBuffer (app->_device, &info, nullptr, &this->_buf);
-    if (sts != VK_SUCCESS) {
-        ERROR ("unable to create buffer object.");
-    }
-
     // get memory requirements
     VkMemoryRequirements reqs;
     vkGetBufferMemoryRequirements(this->_app->_device, this->_buf, &reqs);
@@ -47,7 +31,7 @@ Buffer::Buffer (Application *app, VkBufferUsageFlags usage, VkMemoryPropertyFlag
         reqs.memoryTypeBits,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-    sts = vkAllocateMemory(app->_device, &allocInfo, nullptr, &this->_mem);
+    auto sts = vkAllocateMemory(app->_device, &allocInfo, nullptr, &this->_mem);
     if (sts != VK_SUCCESS) {
         ERROR("failed to allocate vertex buffer memory!");
     }
@@ -69,21 +53,25 @@ Buffer::~Buffer ()
 void Buffer::_copyDataToBuffer (const void *src, size_t offset, size_t sz)
 {
     assert (offset + sz <= this->_sz);
+    assert (sz > 0);
 
-    // first we need to map the object into our address space
+    // first we need to map the buffer's memory object into our address space
     void *dst;
-    auto sts = vkMapMemory(this->_app->_device, this->_mem, offset, this->_sz, 0, &dst);
+    auto sts = vkMapMemory(this->_app->_device, this->_mem, offset, sz, 0, &dst);
     if (sts != VK_SUCCESS) {
         ERROR ("unable to map memory object");
     }
     // copy the data
     memcpy(dst, src, sz);
-    // unmap the object
+    // unmap the memory object
     vkUnmapMemory (this->_app->_device, this->_mem);
 }
 
 void Buffer::_stageDataToBuffer (const void *src, size_t offset, size_t sz)
 {
+    assert (offset + sz <= this->_sz);
+    assert (sz > 0);
+
     // allocate a staging buffer that is host visible
     Buffer stagingBuf(
         this->_app,
@@ -101,11 +89,15 @@ void Buffer::_stageDataToBuffer (const void *src, size_t offset, size_t sz)
 
 /***** class VertexBuffer methods *****/
 
-VertexBuffer::VertexBuffer (Application *app, size_t sz, void *data)
-  : Buffer (app, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, sz)
+VertexBuffer::VertexBuffer (Application *app, size_t sz, const void *data)
+  : Buffer (
+        app,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        sz)
 {
     if (data != nullptr) {
-        this->copyTo (data, 0, this->_sz);
+        this->copyTo (data, 0, sz);
     }
 }
 
@@ -122,10 +114,10 @@ inline size_t indexBufSz (uint32_t nIndices, VkIndexType ty)
     }
 }
 
-IndexBuffer::IndexBuffer (Application *app, uint32_t nIndices, VkIndexType ty, void *data)
+IndexBuffer::IndexBuffer (Application *app, uint32_t nIndices, VkIndexType ty, const void *data)
   : Buffer (
         app,
-        VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         indexBufSz(nIndices, ty)),
     _nIndices(nIndices),
