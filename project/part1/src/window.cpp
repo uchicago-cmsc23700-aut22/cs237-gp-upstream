@@ -170,6 +170,9 @@ void Window::draw ()
 
 void Window::render (float dt)
 {
+    if (! this->_isVis)
+        return;
+
     // next buffer from the swap chain
     uint32_t imageIndex;
     this->_syncObjs.acquireNextImage (imageIndex);

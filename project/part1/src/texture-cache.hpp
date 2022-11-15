@@ -48,8 +48,6 @@ class TileTexture {
 
   private:
     cs237::Texture2D    *_txt;          //!< the Vulkan texture (or nullptr, if not resident)
-    VkSampler           _sampler;       //!< the sampler for accessing the texture from the
-                                        //!< shaders
     TextureCache        *_cache;        //!< the cache that this texture belongs to
     tqt::TextureQTree   *_tree;         //!< the texture quadtree from which this texture comes
     uint32_t            _level;         //!< the TQT level of this texture

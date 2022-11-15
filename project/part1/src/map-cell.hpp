@@ -20,61 +20,61 @@ class Tile;
 struct Instance; // defined in map-objects.hpp
 
 class Cell {
-  public:
+public:
 
-  //! Cell constructor
-  //! \param[in] map  the map containing this cell
-  //! \param[in] r    this cell's row in the grid of cells
-  //! \param[in] c    this cell's column in the grid of cells
-  //! \param[in] stem the stem or path prefix used to load this cell's data
+    //! Cell constructor
+    //! \param[in] map  the map containing this cell
+    //! \param[in] r    this cell's row in the grid of cells
+    //! \param[in] c    this cell's column in the grid of cells
+    //! \param[in] stem the stem or path prefix used to load this cell's data
     Cell (Map *map, uint32_t r, uint32_t c, std::string const &stem);
 
     ~Cell ();
 
-  //! load the cell data from the "hf.cell" file
+    //! load the cell data from the "hf.cell" file
     void load ();
 
-  //! returns true if cell data has been loaded
+    //! returns true if cell data has been loaded
     bool isLoaded () const { return (this->_tiles != nullptr); }
 
-  //! the row of this cell in the grid of cells in the map
+    //! the row of this cell in the grid of cells in the map
     int row () const { return this->_row; }
-  //! the column of this cell in the grid of cells in the map
+    //! the column of this cell in the grid of cells in the map
     int col () const { return this->_col; }
-  //! the number of levels of detail supported by this cell
+    //! the number of levels of detail supported by this cell
     int depth () const { return this->_nLODs; }
-  //! the width of this cell in hScale units.  The number of vertices across will be width()+1
+    //! the width of this cell in hScale units.  The number of vertices across will be width()+1
     int width () const { return this->_map->cellWidth(); }
-  //! get the map horizontal scale
+    //! get the map horizontal scale
     float hScale () const { return this->_map->_hScale; }
-  //! get the map vertical scale
+    //! get the map vertical scale
     float vScale () const { return this->_map->_vScale; }
 
-  //! return the path of a data file  for this cell
-  //! \param[in] file the name of the file
-  //! \return the path to the file for this cell.
+    //! return the path of a data file  for this cell
+    //! \param[in] file the name of the file
+    //! \return the path to the file for this cell.
     std::string datafile (std::string const &file);
 
-  //! get a particular tile; we assume that the cell data has been loaded
+    //! get a particular tile; we assume that the cell data has been loaded
     class Tile &tile (int id);
 
-  //! initialize the textures for the cell
+    //! initialize the textures for the cell
     void initTextures (class View *view);
 
-  //! load any objects that are in the cell
+    //! load any objects that are in the cell
     void loadObjects ();
 
-  //! the color texture-quad-tree for this cell (nullptr if not present)
+    //! the color texture-quad-tree for this cell (nullptr if not present)
     tqt::TextureQTree *colorTQT () const { return this->_colorTQT; }
-  //! the normal-map texture-quad-tree for this cell (nullptr if not present)
+    //! the normal-map texture-quad-tree for this cell (nullptr if not present)
     tqt::TextureQTree *normalTQT () const { return this->_normTQT; }
 
-  // constants
+    // constants
     static const uint32_t kMagic = 0x63656C6C;  // 'cell'
     static const uint32_t kMinLODs = 1;         //!< minimum number of LODs in a map
     static const uint32_t kMaxLODs = 9;         //!< maximum number of LODs in a map
 
-  private:
+private:
     Map         *_map;          //!< the map containing this cell
     uint32_t    _row, _col;     //!< the row and column of this cell in its map
     std::string _stem;          //!< prefix of pathnames for access cell data files
@@ -87,8 +87,10 @@ class Cell {
                                 //! not present)
     std::vector<Instance *> _objects; //!< the objects (if any) that are on this map cell
 
-    class Tile *LoadTile (int id);
-
+/** HINT: you will probably want to add additional fields and methods to this class to
+ ** support maintaining the mesh frontier and to keep track of information needed to
+ ** render the mesh, such as the VAO for chunks that are currently being rendered.
+ **/
 };
 
 //! packed vertex representation
@@ -124,16 +126,16 @@ struct HFVertex {
 
 //! LOD mesh chunk
 struct Chunk {
-    float       _maxError;      //!< maximum geometric error (in meters) for this chunk
-    int16_t     _minY;          //!< minimum Y value of the vertices in this chunk
-    int16_t     _maxY;          //!< maximum Y value of the vertices in this chunk
-    uint32_t    _nVertices;     //!< number of vertices in chunk; should be < 2^16
-    uint32_t    _nIndices;      //!< number of indices in chunk
-    HFVertex    *_vertices;     //!< vertex array; each vertex is packed into 64-bits
-    uint16_t    *_indices;      //!< index array
+    float       maxError;       //!< maximum geometric error (in meters) for this chunk
+    int16_t     minY;           //!< minimum Y value of the vertices in this chunk
+    int16_t     maxY;           //!< maximum Y value of the vertices in this chunk
+    uint32_t    nVertices;      //!< number of vertices in chunk; should be < 2^16
+    uint32_t    nIndices;       //!< number of indices in chunk
+    HFVertex    *vertices;      //!< vertex array; each vertex is packed into 64-bits
+    uint16_t    *indices;       //!< index array
 
-    size_t vSize() const { return this->_nVertices * sizeof(HFVertex); }
-    size_t iSize() const { return this->_nIndices * sizeof(uint16_t); }
+    size_t vSize() const { return this->nVertices * sizeof(HFVertex); }
+    size_t iSize() const { return this->nIndices * sizeof(uint16_t); }
 };
 
 //! A tile is a node in the LOD quadtree.  It contains the mesh data for the corresponding
@@ -170,14 +172,15 @@ class Tile {
     void dump (std::ostream &outS);
 
   private:
-    Cell        *_cell;         //!< the cell that contains this tile
-    uint32_t    _id;            //!< the ID of this tile, which is also its index in the quadtree array
-    uint32_t    _row;           //!< the row of this tile's NW vertex in its cell
-    uint32_t    _col;           //!< the column of this tile's NW vertex in its cell
-    int32_t     _lod;           //!< the level of detail of this tile (0 == coarsest)
+    Cell *_cell;                //!< the cell that contains this tile
+    uint32_t _id;               //!< the ID of this tile, which is also its index in the
+                                //!  quadtree array
+    uint32_t _row;              //!< the row of this tile's NW vertex in its cell
+    uint32_t _col;              //!< the column of this tile's NW vertex in its cell
+    int32_t _lod;               //!< the level of detail of this tile (0 == coarsest)
     struct Chunk _chunk;        //!< mesh data for this tile
     cs237::AABBd _bbox;         //!< the tile's bounding box in world coordinates; note that we use
-                                //!  double precision here so that we can support large worlds
+                                //!  double precision here so that we can support large maps
 
   //! initialize the _cell, _id, etc. fields of this tile and its descendants.  The chunk and
   //! bounding box get set later
