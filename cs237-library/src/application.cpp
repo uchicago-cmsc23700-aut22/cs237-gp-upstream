@@ -21,11 +21,6 @@ namespace cs237 {
 static std::vector<const char *> requiredExtensions (bool debug);
 static int graphicsQueueIndex (VkPhysicalDevice dev);
 
-const std::vector<const char*> kDeviceExts = {
-        "VK_KHR_portability_subset",
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
-    };
-
 const std::vector<const char *> kValidationLayers = {
         "VK_LAYER_KHRONOS_validation"
     };
@@ -288,6 +283,17 @@ VkFormat Application::_depthStencilBufferFormat (bool depth, bool stencil)
 
 }
 
+//! helper function to check if named extension is in a vector of extension properties
+static bool extInList (const char *name, std::vector<VkExtensionProperties> const &props)
+{
+    for (auto it = props.cbegin();  it != props.cend();  ++it) {
+        if (strcmp(it->extensionName, name) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void Application::_createLogicalDevice ()
 {
     VkDeviceCreateInfo createInfo{};
@@ -319,6 +325,22 @@ void Application::_createLogicalDevice ()
         createInfo.ppEnabledLayerNames = kValidationLayers.data();
     } else {
         createInfo.enabledLayerCount = 0;
+    }
+
+    // get the extensions that are supported by the device
+    auto supportedExts = this->supportedDeviceExtensions();
+
+    // set up the extension vector to have swap chains and portability subset (if
+    // supported)
+    std::vector<const char*> kDeviceExts;
+    if (extInList(VK_KHR_SWAPCHAIN_EXTENSION_NAME, supportedExts)) {
+        kDeviceExts.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    }
+    else {
+        ERROR("required " VK_KHR_SWAPCHAIN_EXTENSION_NAME " extension is not supported");
+    }
+    if (extInList("VK_KHR_portability_subset", supportedExts)) {
+        kDeviceExts.push_back("VK_KHR_portability_subset");
     }
 
     // set up the enabled extensions to include swap chains
@@ -654,15 +676,29 @@ VkSampler Application::createSampler (Application::SamplerInfo const &info)
     return sampler;
 }
 
-// Get the list of supported extensions
+// Get the list of supported instance extensions
 //
-std::vector<VkExtensionProperties> Application::supportedExtensions ()
+std::vector<VkExtensionProperties> Application::supportedInstanceExtensions ()
 {
     uint32_t extensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
     std::vector<VkExtensionProperties> extProps(extensionCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extProps.data());
     return extProps;
+}
+
+// Get the list of supported device extensions
+//
+std::vector<VkExtensionProperties> Application::supportedDeviceExtensions ()
+{
+    uint32_t extensionCount = 0;
+    vkEnumerateDeviceExtensionProperties(
+        this->_gpu, nullptr, &extensionCount, nullptr);
+    std::vector<VkExtensionProperties> extProps(extensionCount);
+    vkEnumerateDeviceExtensionProperties(
+        this->_gpu, nullptr, &extensionCount, extProps.data());
+    return extProps;
+
 }
 
 // Get the list of supported layers

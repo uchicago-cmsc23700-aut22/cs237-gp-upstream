@@ -53,9 +53,14 @@ public:
         return this->_messages == VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
     }
 
-    //! \brief Get the list of supported Vulkan extensions
+    //! \brief Get the list of supported Vulkan instance extensions
     //! \return The vector of VkExtensionProperties for the supported extensions
-    static std::vector<VkExtensionProperties> supportedExtensions ();
+    static std::vector<VkExtensionProperties> supportedInstanceExtensions ();
+
+    //! \brief Get the list of supported Vulkan device extensions for the selected
+    //!        physical device.
+    //! \return The vector of VkExtensionProperties for the supported extensions
+    std::vector<VkExtensionProperties> supportedDeviceExtensions ();
 
     //! \brief Get the list of supported layers
     //! \return The vector of VkLayerProperties for the supported layers
