@@ -127,6 +127,23 @@ public:
         return props;
     }
 
+    //! \brief Create a pipeline layout
+    //! \param descSets the descriptor sets for the pipeline
+    //! \param pcrs the push-constant ranged for the pipeline
+    //! \return the created pipeline layout object
+    //!
+    //! Note that the Vulkan specification recommends using multiple
+    //! descriptor sets when you have uniforms that are updted at different
+    //! frequencies (e.g., per-scene vs. per-object).  It also recommends
+    //! putting the least frequently changing descriptor sets at the
+    //! beginning.
+    VkPipelineLayout createPipelineLayout (
+        std::vector<VkDescriptorSetLayout> descSets,
+        std::vector<VkPushConstantRange> pcrs);
+
+    //! \brief Create a pipeline layout for a single descriptor set
+    VkPipelineLayout createPipelineLayout (VkDescriptorSetLayout descSet);
+
     //! \brief Allocate a graphics pipeline
     //! \param shaders     shaders for the pipeline
     //! \param vertexInfo  vertex info

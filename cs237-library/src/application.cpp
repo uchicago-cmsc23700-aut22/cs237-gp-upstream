@@ -712,6 +712,44 @@ std::vector<VkLayerProperties> Application::supportedLayers ()
     return layers;
 }
 
+VkPipelineLayout Application::createPipelineLayout (
+    std::vector<VkDescriptorSetLayout> descSets,
+    std::vector<VkPushConstantRange> pcrs)
+{
+    VkPipelineLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    layoutInfo.setLayoutCount = descSets.size();
+    layoutInfo.pSetLayouts = descSets.data();
+    layoutInfo.pushConstantRangeCount = pcrs.size();
+    layoutInfo.pPushConstantRanges = pcrs.data();
+
+    VkPipelineLayout layout;
+    auto sts = vkCreatePipelineLayout(this->_device, &layoutInfo, nullptr, &layout);
+    if (sts != VK_SUCCESS) {
+        ERROR("unable to create pipeline layout!");
+    }
+
+    return layout;
+}
+
+//! \brief Create a pipeline layout for a single descriptor set
+VkPipelineLayout Application::createPipelineLayout (VkDescriptorSetLayout descSet)
+{
+    VkPipelineLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    layoutInfo.setLayoutCount = 1;
+    layoutInfo.pSetLayouts = &descSet;
+    layoutInfo.pushConstantRangeCount = 0;
+
+    VkPipelineLayout layout;
+    auto sts = vkCreatePipelineLayout(this->_device, &layoutInfo, nullptr, &layout);
+    if (sts != VK_SUCCESS) {
+        ERROR("unable to create pipeline layout!");
+    }
+
+    return layout;
+}
+
 VkPipeline Application::createPipeline (
     cs237::Shaders *shaders,
     VkPipelineVertexInputStateCreateInfo const &vertexInfo,
