@@ -151,6 +151,7 @@ public:
     //! \param primRestart true if primitive restart should be enabled
     //! \param polyMode    polygon mode
     //! \param cullMode    primitive culling mode
+    //! \param front       the winding order that defines the front face of a triangle
     //! \param layout      the pipeline layout
     //! \param renderPass  a render pass that is compatible with the render pass to be used
     //! \param subPass     the index of the subpass in the render pass where the pipeline
@@ -165,6 +166,7 @@ public:
         bool primRestart,
         VkPolygonMode polyMode,
         VkCullModeFlags cullMode,
+        VkFrontFace front,
         VkPipelineLayout layout,
         VkRenderPass renderPass,
         uint32_t subPass,

@@ -757,6 +757,7 @@ VkPipeline Application::createPipeline (
     bool primRestart,
     VkPolygonMode polyMode,
     VkCullModeFlags cullMode,
+    VkFrontFace front,
     VkPipelineLayout layout,
     VkRenderPass renderPass,
     uint32_t subPass,
@@ -779,7 +780,7 @@ VkPipeline Application::createPipeline (
     rasterizer.polygonMode = polyMode;
     rasterizer.lineWidth = 1.0f;
     rasterizer.cullMode = cullMode;
-    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterizer.frontFace = front;
     rasterizer.depthBiasEnable = VK_FALSE;
 
     VkPipelineMultisampleStateCreateInfo multisampling{};
