@@ -17,7 +17,7 @@
 #include "tqt.hpp"
 
 class Tile;
-struct Instance; // defined in map-objects.hpp
+struct Instance; // will be defined in Part 2
 
 class Cell {
 public:
