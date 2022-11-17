@@ -63,7 +63,7 @@ class TileTexture {
     friend struct TxtCompare;
 };
 
-//! A cache of OpenGL textures that is backed by texture-quad-trees
+//! A cache of Vulkan textures that is backed by texture-quad-trees
 class TextureCache {
   public:
 
@@ -133,9 +133,6 @@ class TextureCache {
 
   //! record that the given texture is now inactive
     void _release (TileTexture *txt);
-
-  //! allocate a Vulkan texture, either by reusing a free texture or by creating a new one.
-    cs237::Texture2D *_allocTex2D (cs237::Image2D *img);
 
     friend class TileTexture;
 };

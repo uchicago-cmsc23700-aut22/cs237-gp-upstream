@@ -11,13 +11,16 @@
  */
 
 #include "window.hpp"
+#include "map-cell.hpp"
+#include "vao.hpp"
+#include "texture-cache.hpp"
 
 constexpr double kTimeStep = 0.001;     //! animation/physics timestep
 
 Window::Window (Project *app, cs237::CreateWindowInfo const &info, Map *map)
   : cs237::Window (app, info), _map(map), _syncObjs(this)
 {
-  // Compute the bounding box for the entire map
+    // Compute the bounding box for the entire map
     this->_mapBBox = cs237::AABBd(
         glm::dvec3(0.0, double(map->minElevation()), 0.0),
         glm::dvec3(
@@ -25,13 +28,13 @@ Window::Window (Project *app, cs237::CreateWindowInfo const &info, Map *map)
             double(map->maxElevation()),
             double(map->hScale()) * double(map->height())));
 
-  // Place the viewer in the center of cell(0,0), just above the
-  // cell's bounding box.
+    // Place the viewer in the center of cell(0,0), just above the
+    // cell's bounding box.
     cs237::AABBd bb = map->cell(0,0)->tile(0).bBox();
     glm::dvec3 pos = bb.center();
     pos.y = bb.maxY() + 0.01 * (bb.maxX() - bb.minX());
 
-  // The camera's direction is toward the bulk of the terrain
+    // The camera's direction is toward the bulk of the terrain
     glm::dvec3 at;
     if ((map->nRows() == 1) && (map->nCols() == 1)) {
         at = pos + glm::dvec3(1.0, -0.25, 1.0);
@@ -41,7 +44,7 @@ Window::Window (Project *app, cs237::CreateWindowInfo const &info, Map *map)
     }
     this->_cam.move(pos, at, glm::dvec3(0.0, 1.0, 0.0));
 
-  // set the FOV and near/far planes
+    // set the FOV and near/far planes
     this->_cam.setFOV (60.0);
     double diagonal = 1.02 * std::sqrt(
         double(map->nRows() * map->nRows())
@@ -49,9 +52,11 @@ Window::Window (Project *app, cs237::CreateWindowInfo const &info, Map *map)
     this->_cam.setNearFar (
         10.0,
         diagonal * double(map->cellWidth()) * double(map->hScale()));
-    this->resize (wid, ht);
 
-  // initialize the Vulkan resources for the map cells
+    // default error limit is 1%
+    this->_errorLimit = float(info.ht) / 100.0f;
+
+    // initialize the Vulkan resources for the map cells
     std::clog << "initializing textures" << std::endl;
     for (int r = 0;  r < map->nRows(); r++) {
         for (int c = 0;  c < map->nCols();  c++) {
@@ -73,7 +78,7 @@ Window::Window (Project *app, cs237::CreateWindowInfo const &info, Map *map)
     this->_framebuffers = this->_swap.framebuffers(this->_renderPass);
 
     // create the command buffer
-    this->_cmdBuffer = _newCommandBuf();
+    this->_cmdBuffer = this->_app->newCommandBuf();
 
     // allocate synchronization objects
     this->_syncObjs.allocate();
@@ -90,7 +95,7 @@ Window::~Window ()
     auto device = this->device();
 
     /* delete the command buffer */
-    this->_freeCommandBuf (this->_cmdBuffer);
+    this->_app->freeCommandBuf (this->_cmdBuffer);
 
     /* delete the framebuffers */
     for (auto fb : this->_framebuffers) {
@@ -151,7 +156,7 @@ void Window::_initRenderPass ()
 
 }
 
-void View::animate (double now)
+void Window::animate (double now)
 {
     double dt = now - this->_lastStep;
     if (dt >= kTimeStep) {
@@ -247,4 +252,3 @@ void Window::key (int key, int scancode, int action, int mods)
     }
 
 }
-

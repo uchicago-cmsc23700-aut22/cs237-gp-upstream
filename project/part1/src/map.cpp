@@ -15,7 +15,6 @@
 #include "cs237.hpp"
 #include "map.hpp"
 #include "map-cell.hpp"
-#include "map-objects.hpp"
 #include <unistd.h>
 
 /***** class Map member functions *****/
@@ -265,12 +264,7 @@ bool Map::load (std::string const &mapName, bool verbose)
     }
 
   // are there any objects?
-    {
-        std::string objectsDir = this->_path + "objects";
-        if (access(objectsDir.c_str(), F_OK) == 0) {
-            this->_objects = new Objects (this->_app, this);
-        }
-    }
+    /* PART 2 code goes here */
 
   // compute and check other map info
     int cellShft = ilog2(this->_cellSize);

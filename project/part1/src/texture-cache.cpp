@@ -73,24 +73,6 @@ void TextureCache::_release (TileTexture *txt)
     this->_inactive.push_back(txt);
 }
 
-cs237::Texture2D *TextureCache::_allocTex2D (cs237::Image2D *img)
-{
-/* FIXME: eventually, we should reuse inactive textures to reduce GPU memory pressure */
-    cs237::Texture2D *txt = new cs237::Texture2D (this->_app, img, true);
-
-    cs237::Application::SamplerInfo info(
-        VK_FILTER_LINEAR,
-        VK_FILTER_LINEAR,
-        VK_SAMPLER_MIPMAP_MODE_LINEAR,
-        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-        VK_BORDER_COLOR_INT_OPAQUE_BLACK);
-
-    this->_sampler = this->_app->createSampler (info);
-
-    return txt;
-}
-
 /***** class TileTexture member functions *****/
 
 TileTexture::TileTexture (TextureCache *cache, tqt::TextureQTree *tree, int level, int row, int col)
@@ -100,20 +82,24 @@ TileTexture::TileTexture (TextureCache *cache, tqt::TextureQTree *tree, int leve
 
 TileTexture::~TileTexture ()
 {
-/* FIXME: remove from cache data structures as needed */
-    if (this->_txt != nullptr)
+    if (this->_active) {
+        this->release();
+    }
+/* FIXME: remove from cache inactive list */
+    if (this->_txt != nullptr) {
         delete this->_txt;
+    }
 }
 
-// preload the texture data into OpenGL; this operation is a hint to the texture
-// cache that the texture cache that the texture is going to be used soon.
+// preload the texture data into Vulkan; this operation is a hint to the texture
+// cache that the texture is going to be used soon.
 void TileTexture::activate ()
 {
     assert (! this->_active);
     if (this->_txt == nullptr) {
-      // load the image data from the TQT and create a texture for it
+        // load the image data from the TQT and create a texture for it
         cs237::Image2D *img = this->_tree->loadImage (this->_level, this->_row, this->_col);
-        this->_txt = this->_cache->_allocTex2D (img);
+        this->_txt = new cs237::Texture2D (this->_cache->_app, img, true);
     }
 
     this->_cache->_makeActive (this);

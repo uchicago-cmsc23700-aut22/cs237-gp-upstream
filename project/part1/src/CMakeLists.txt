@@ -12,11 +12,9 @@ set(TARGET part1)
 
 set(SRCS
   app.cpp
-#  buffer-cache.cpp
   camera.cpp
   main.cpp
   map-cell.cpp
-  map-objects.cpp
   map.cpp
   texture-cache.cpp
   window.cpp)

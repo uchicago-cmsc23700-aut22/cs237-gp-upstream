@@ -14,7 +14,6 @@
 #include "cs237.hpp"
 #include "map.hpp"
 #include "map-cell.hpp"
-#include "map-objects.hpp"
 #include "qtree-util.hpp"
 #include <fstream>
 #include <vector>
@@ -174,10 +173,28 @@ void Cell::load ()
 //
 void Cell::loadObjects ()
 {
-    if (this->_map->_objects->loadObjects (this->_stem, this->_objects)) {
-        std::cerr << "Cell::load: error loading objects for cell\n";
-        exit (1);
+    /* Part 2 code to go here */
+}
+
+// load textures for a cell
+//
+void Cell::initTextures (Window *win)
+{
+  // load textures
+    if (this->_map->hasColorMap()) {
+        this->_colorTQT = new tqt::TextureQTree (this->datafile("/color.tqt"), true, true);
     }
+    if (this->_map->hasNormalMap()) {
+        this->_normTQT = new tqt::TextureQTree (this->datafile("/norm.tqt"), true, false);
+    }
+#ifndef NDEBUG
+    if ((this->_colorTQT != nullptr) && (this->_normTQT != nullptr)) {
+        assert (this->_colorTQT->depth() == this->_normTQT->depth());
+    }
+#endif
+
+    /** HINT: add tile-specific texture initialization for the root tile here */
+
 }
 
 /***** class Tile member functions *****/

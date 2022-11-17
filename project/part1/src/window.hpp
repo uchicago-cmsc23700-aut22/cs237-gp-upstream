@@ -69,9 +69,6 @@ public:
   //! the window's current error limit
     float errorLimit () const { return this->_errorLimit; }
 
-  //! the cache of VAO objects for representing chunks
-    class BufferCache *vaoCache () const { return this->_bCache; }
-
   //! the cache of textures for the map tiles
     class TextureCache *txtCache () const { return this->_tCache; }
 
@@ -87,8 +84,7 @@ private:
     cs237::AABBd _mapBBox;              //!< a bounding box around the entire map
 
     // resource management
-    class BufferCache *_bCache;         //!< cache of OpenGL VAO objects used for chunks
-    class TextureCache *_tCache;        //!< cache of OpenGL textures
+    class TextureCache *_tCache;        //!< cache of textures
 
     VkRenderPass _renderPass;                   //!< the render pass for drawing
     std::vector<VkFramebuffer> _framebuffers;   //!< the framebuffers
@@ -101,6 +97,9 @@ private:
     /** HINT: you will need to define any initialization function
      ** that you use to initialize the rendering structures.
      */
+
+    //! initialize the _renderPass field
+    void _initRenderPass ();
 
 };
 

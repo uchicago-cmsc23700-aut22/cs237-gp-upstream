@@ -59,7 +59,7 @@ public:
     class Tile &tile (int id);
 
     //! initialize the textures for the cell
-    void initTextures (class View *view);
+    void initTextures (class Window *win);
 
     //! load any objects that are in the cell
     void loadObjects ();
