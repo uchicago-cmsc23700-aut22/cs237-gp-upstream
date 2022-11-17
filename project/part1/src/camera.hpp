@@ -85,14 +85,16 @@ class Camera {
 
   private:
     glm::dvec3 _pos;            //!< position is double precision to allow large worlds
-    glm::vec3 _dir;             //!< the current direction that the camera is pointing towards
-    glm::vec3 _up;              //! camera up vector
+    glm::vec3 _dir;             //!< the current direction that the camera is pointing toward
+    glm::vec3 _up;              //!< camera up vector
     float _nearZ;               //!< distance to the near plane
     float _farZ;                //!< distance to the far plane
-    float _aspect;              //! the aspect ratio of the viewport (height / width)
+    float _aspect;              //!< the aspect ratio of the viewport (height / width)
     float _halfFOV;             //!< horizontal field of view / 2 (in radians)
     mutable float _errorFactor; //!< viewport width/(2 * tan(_halfFOV)); set to -1 when invalid
     int _wid;                   //!< the width of the viewport
+
+/** HINT: you may want to add a representation of the view frustum to the camera */
 
 };
 

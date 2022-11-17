@@ -31,6 +31,9 @@
 *.out
 *.app
 
+# clangd cache
+.cache
+
 # Compiled shader programs
 *.spv
 

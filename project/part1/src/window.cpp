@@ -178,7 +178,11 @@ void Window::render (float dt)
     this->_syncObjs.acquireNextImage (imageIndex);
     this->_syncObjs.reset();
 
-    /** HINT: draw the objects in the scene using the current rendering mode */
+    /** HINT: draw the objects in the scene using the current rendering mode.
+     ** For the terrain mesh, you will need to iterate over the cells in
+     ** the map and for each cell you will need to walk the quad tree and
+     ** render the tiles that comprise the frontier of the mesh refinement.
+     */
 
     // set up submission for the graphics queue
     this->_syncObjs.submitCommands (this->graphicsQ(), this->_cmdBuffer);

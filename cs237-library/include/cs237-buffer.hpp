@@ -53,6 +53,12 @@ protected:
     //! Note that this operation only works for buffers that are "host visible".
     void _copyDataToBuffer (const void *src, size_t offset, size_t sz);
 
+    //! \brief copy data from the buffer using a staging buffer.
+    //! \param dst    the destination for the data
+    //! \param offset the source offset in the buffer
+    //! \param sz     the size (in bytes) of data to copy
+    void _stageDataFromBuffer (void *dst, size_t offset, size_t sz);
+
 };
 
 //! Buffer class for vertex data
@@ -126,7 +132,7 @@ private:
 class UniformBuffer : public Buffer {
 public:
 
-    //! IndexBuffer constuctor
+    //! UniformBuffer constuctor
     //! \param app  the application pointer
     //! \param sz    the size (in bytes) of the buffer
     UniformBuffer (Application *app, size_t sz);
@@ -145,6 +151,44 @@ public:
     void copyTo (const void *data, size_t offset, size_t sz)
     {
         this->_copyDataToBuffer(data, offset, sz);
+    }
+
+};
+
+//! Buffer class for storage buffers, which are used to hold data that is both readable and
+//! writable by the GPU.
+class StorageBuffer : public Buffer {
+public:
+
+    //! StorageBuffer constuctor
+    //! \param app  the application pointer
+    //! \param sz   the size (in bytes) of the buffer
+    //! \param data optional pointer to data for initialization
+    StorageBuffer (Application *app, size_t sz, const void *data = nullptr);
+
+    //! \brief copy data to the buffer; the amount of data copied is the size of the buffer
+    //! \param data the source of the data to copy to the buffer
+    void copyTo (const void *data)
+    {
+        this->_stageDataToBuffer(data, 0, this->_sz);
+    }
+
+    //! \brief copy data to the buffer
+    //! \param data   the source of the data to copy to the buffer
+    //! \param offset the destination offset in the buffer
+    //! \param sz     the size (in bytes) of data to copy
+    void copyTo (const void *data, size_t offset, size_t sz)
+    {
+        this->_stageDataToBuffer(data, offset, sz);
+    }
+
+    //! \brief copy data to the buffer
+    //! \param data   the destination for the data
+    //! \param offset the source offset in the buffer
+    //! \param sz     the size (in bytes) of data to copy
+    void copyFrom (void *data, size_t offset, size_t sz)
+    {
+        this->_stageDataFromBuffer(data, offset, sz);
     }
 
 };

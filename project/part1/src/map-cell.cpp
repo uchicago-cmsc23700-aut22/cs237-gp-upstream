@@ -136,20 +136,20 @@ void Cell::load ()
       // find the beginning of the chunk in the input file
         inS.seekg(toc[id]);
       // read the chunk's header
-        cp->_maxError = readF32(inS);
+        cp->maxError = readF32(inS);
         uint32_t nVerts = readUI32(inS);
         uint32_t nIndices = readUI32(inS);
-        cp->_minY = readI16(inS);
-        cp->_maxY = readI16(inS);
+        cp->minY = readI16(inS);
+        cp->maxY = readI16(inS);
       // allocate space for the chunk data
         this->_tiles[id]._allocChunk(nVerts, nIndices);
       // read the vertex data
-        if (inS.read(reinterpret_cast<char *>(cp->_vertices), cp->vSize()).fail()) {
+        if (inS.read(reinterpret_cast<char *>(cp->vertices), cp->vSize()).fail()) {
             std::cerr << "Cell::load: error reading vertex data for tile " << id << "\n";
             exit (1);
         }
       // read the index array
-        if (inS.read(reinterpret_cast<char *>(cp->_indices), cp->iSize()).fail()) {
+        if (inS.read(reinterpret_cast<char *>(cp->indices), cp->iSize()).fail()) {
             std::cerr << "Cell::load: error reading index data for tile " << id << "\n";
             exit (1);
         }
@@ -159,12 +159,12 @@ void Cell::load ()
             this->_map->nwCellCorner(this->_row, this->_col) +
             glm::dvec3(
                 this->_map->hScale() * double(this->_tiles[id]._col),
-                double(this->_map->baseElevation() + this->_map->vScale() * float(cp->_minY)),
+                double(this->_map->baseElevation() + this->_map->vScale() * float(cp->minY)),
                 this->_map->hScale() * double(this->_tiles[id]._row));
         double w = this->_map->hScale() * this->_tiles[id].width();
         glm::dvec3 seCorner = nwCorner + glm::dvec3(w, 0.0, w);
         seCorner.y = static_cast<double>(
-            this->_map->baseElevation() + this->_map->vScale() * float(cp->_maxY));
+            this->_map->baseElevation() + this->_map->vScale() * float(cp->maxY));
         this->_tiles[id]._bbox = cs237::AABBd(nwCorner, seCorner);
     }
 
@@ -184,24 +184,24 @@ void Cell::loadObjects ()
 
 Tile::Tile ()
 {
-    this->_chunk._nVertices = 0;
-    this->_chunk._nIndices = 0;
-    this->_chunk._vertices = nullptr;
-    this->_chunk._indices = nullptr;
+    this->_chunk.nVertices = 0;
+    this->_chunk.nIndices = 0;
+    this->_chunk.vertices = nullptr;
+    this->_chunk.indices = nullptr;
 }
 
 Tile::~Tile ()
 {
-    delete this->_chunk._vertices;
-    delete this->_chunk._indices;
+    delete this->_chunk.vertices;
+    delete this->_chunk.indices;
 }
 
 void Tile::_allocChunk (uint32_t nv, uint32_t ni)
 {
-    this->_chunk._nVertices = nv;
-    this->_chunk._nIndices = ni;
-    this->_chunk._vertices = new HFVertex[nv];
-    this->_chunk._indices = new uint16_t[ni];
+    this->_chunk.nVertices = nv;
+    this->_chunk.nIndices = ni;
+    this->_chunk.vertices = new HFVertex[nv];
+    this->_chunk.indices = new uint16_t[ni];
 }
 
 // initialize the _cell, _id, etc. fields of this tile and its descendants.  The chunk and

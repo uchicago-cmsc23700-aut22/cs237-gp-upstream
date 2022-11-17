@@ -120,11 +120,7 @@ include_directories(${X11_INCLUDE_DIR})
 link_libraries(${X11_LIBRARIES})
 endif()
 
-# the subdirectory for the labs
+# the subdirectory for the group project
 #
-add_subdirectory(labs EXCLUDE_FROM_ALL)
-
-# the subdirectory for the projects
-#
-add_subdirectory(projs EXCLUDE_FROM_ALL)
+add_subdirectory(project EXCLUDE_FROM_ALL)
 

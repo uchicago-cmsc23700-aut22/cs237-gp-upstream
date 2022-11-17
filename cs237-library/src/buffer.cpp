@@ -87,6 +87,36 @@ void Buffer::_stageDataToBuffer (const void *src, size_t offset, size_t sz)
 
 }
 
+void Buffer::_stageDataFromBuffer (void *dst, size_t offset, size_t sz)
+{
+    assert (offset + sz <= this->_sz);
+    assert (sz > 0);
+
+    // allocate a staging buffer that is host visible
+    Buffer stagingBuf(
+        this->_app,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        sz);
+
+    // use the GPU to copy the data from this buffer to the staging buffer
+    this->_app->_copyBuffer (this->_buf, stagingBuf._buf, offset, sz);
+
+    // copy the data to the staging buffer
+
+    // map the staging buffer's memory object into our address space
+    void *src;
+    auto sts = vkMapMemory(this->_app->_device, stagingBuf._mem, 0, sz, 0, &src);
+    if (sts != VK_SUCCESS) {
+        ERROR ("unable to map memory object");
+    }
+    // copy the data
+    memcpy(dst, src, sz);
+    // unmap the memory object
+    vkUnmapMemory (this->_app->_device, stagingBuf._mem);
+
+}
+
 /***** class VertexBuffer methods *****/
 
 VertexBuffer::VertexBuffer (Application *app, size_t sz, const void *data)
@@ -137,5 +167,19 @@ UniformBuffer::UniformBuffer (Application *app, size_t sz)
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         sz)
 { }
+
+/***** class StorageBuffer methods *****/
+
+StorageBuffer::StorageBuffer (Application *app, size_t sz, const void *data)
+  : Buffer (
+        app,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        sz)
+{
+    if (data != nullptr) {
+        this->copyTo (data, 0, this->_sz);
+    }
+}
 
 } // namespace cs237
