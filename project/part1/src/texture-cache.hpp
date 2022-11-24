@@ -39,8 +39,6 @@ class TileTexture {
         if (! this->_active) {
             this->activate();
         }
-//        CS237_CHECK( glActiveTexture (GL_TEXTURE0 + txtUnit) );
-//        this->_txt->Bind();
     }
 
   //! hint to the texture cache that this texture is not needed.
