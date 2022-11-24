@@ -43,7 +43,7 @@ Project::Project (std::vector<const char *> &args)
     }
 
     // load the scene
-    if (this->_map.load(mapName)) {
+    if (! this->_map.load(mapName)) {
         std::cerr << "cannot load map from '" << mapName << "'\n";
         exit(EXIT_FAILURE);
     }
