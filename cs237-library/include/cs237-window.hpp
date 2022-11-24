@@ -49,6 +49,9 @@ public:
     //! destructor: it destroys the underlying GLFW window
     virtual ~Window ();
 
+    //! return the application pointer
+    Application *app () { return this->_app; }
+
     //! return the logical device for this window
     VkDevice device () const { return this->_app->_device; }
 
