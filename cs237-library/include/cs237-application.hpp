@@ -149,6 +149,8 @@ public:
     //! \param vertexInfo  vertex info
     //! \param prim        primitive topology
     //! \param primRestart true if primitive restart should be enabled
+    //! \param viewports   vector of viewports; ignored if the viewport state is dynamic
+    //! \param scissors    vector of scissor rectangles; ignored if the scissor state is dynamic
     //! \param polyMode    polygon mode
     //! \param cullMode    primitive culling mode
     //! \param front       the winding order that defines the front face of a triangle
@@ -164,6 +166,8 @@ public:
         VkPipelineVertexInputStateCreateInfo const &vertexInfo,
         VkPrimitiveTopology prim,
         bool primRestart,
+        std::vector<VkViewport> const &viewports,
+        std::vector<VkRect2D> const &scissors,
         VkPolygonMode polyMode,
         VkCullModeFlags cullMode,
         VkFrontFace front,

@@ -755,6 +755,8 @@ VkPipeline Application::createPipeline (
     VkPipelineVertexInputStateCreateInfo const &vertexInfo,
     VkPrimitiveTopology prim,
     bool primRestart,
+    std::vector<VkViewport> const &viewports,
+    std::vector<VkRect2D> const &scissors,
     VkPolygonMode polyMode,
     VkCullModeFlags cullMode,
     VkFrontFace front,
@@ -770,8 +772,10 @@ VkPipeline Application::createPipeline (
 
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportState.viewportCount = 1;
-    viewportState.scissorCount = 1;
+    viewportState.viewportCount = viewports.size();
+    viewportState.pViewports = viewports.data();
+    viewportState.scissorCount = scissors.size();
+    viewportState.pScissors = scissors.data();
 
     VkPipelineRasterizationStateCreateInfo rasterizer{};
     rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
