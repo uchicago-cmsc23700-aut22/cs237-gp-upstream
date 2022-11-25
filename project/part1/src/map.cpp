@@ -329,6 +329,13 @@ bool Map::load (std::string const &mapName, bool verbose)
         }
     }
 
+    std::clog << "loading cells\n";
+    for (int r = 0;  r < this->nRows(); r++) {
+        for (int c = 0;  c < this->nCols();  c++) {
+            this->cell(r, c)->load();
+        }
+    }
+
     return true;
 
 }

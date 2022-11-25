@@ -43,16 +43,20 @@ Project::Project (std::vector<const char *> &args)
     }
 
     // load the scene
+    std::clog << "loading " << mapName << std::endl;
     if (! this->_map.load(mapName)) {
         std::cerr << "cannot load map from '" << mapName << "'\n";
         exit(EXIT_FAILURE);
     }
+
 }
 
 Project::~Project () { }
 
 void Project::run ()
 {
+    std::clog << "running ...\n";
+
     // create the application window
     cs237::CreateWindowInfo cwInfo(
         kWindowWidth, kWindowHeight,

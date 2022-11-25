@@ -280,6 +280,14 @@ protected:
         int32_t x, int32_t y,
         int32_t wid, int32_t ht);
 
+public:
+
+    //! the width of the window
+    int width () const { return this->_swap.extent.width; }
+
+    //! the height of the window
+    int height () const { return this->_swap.extent.height; }
+
 };
 
 } // namespace cs237
