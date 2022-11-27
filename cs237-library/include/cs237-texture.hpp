@@ -89,7 +89,7 @@ public:
 
 private:
     //! helper function for generating the mipmap levels
-    void _generateMipMaps ();
+    void _generateMipMaps (cs237::Image2D const *img);
 
 };
 

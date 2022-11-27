@@ -25,7 +25,8 @@ namespace tqt {
 
         //! \brief constructor for a texture quad tree
         //! \param filename
-        //! \param sRGB     are the textures in sRGB format?
+        //! \param flip should the image be flipped to match OpenGL (default true)
+        //! \param sRGB are the textures in sRGB format?
         TextureQTree (std::string const &filename, bool flip, bool sRGB);
         ~TextureQTree();
 
@@ -40,11 +41,13 @@ namespace tqt {
       //! \param[in] level the level of the node in the tree (root = 0)
       //! \param[in] row the row of the node on its level (north == 0)
       //! \param[in] col the column of the node on its level (west == 0)
-      //! \param[in] flip should the image be flipped to match OpenGL (default true)
       //! \return a pointer to the image; nullptr is returned if there is
       //!         an error.  It is the caller's responsibility to manage the
       //!         image's storage.
         cs237::Image2D *loadImage (int level, int row, int col);
+
+      //! are the images sRGB?
+        bool sRGB () const { return this->_sRGB; }
 
       //! return true if the file looks like a TQT file of the right version
         static bool isTQTFile (std::string const &filename);
