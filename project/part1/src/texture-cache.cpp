@@ -12,12 +12,12 @@
 #include "texture-cache.hpp"
 #include <utility>
 
-#define ONE_MEG         (1024*1024)
-#define ONE_GIG         (1024*ONE_MEG)
+//! soft upper bound on the number of GPU resident textures
+constexpr uint32_t kNumActiveLimit = 1024;
 
 // initialize the texture cache
-TextureCache::TextureCache (cs237::Application *app)
-    : _app(app), _residentLimit(ONE_GIG), _residentSzb(0), _clock(0)
+TextureCache::TextureCache (cs237::Application *app, bool mipmap)
+    : _app(app), _numActive(0), _clock(0)
 { }
 
 TileTexture *TextureCache::make (tqt::TextureQTree *tree, int level, int row, int col)
@@ -25,7 +25,7 @@ TileTexture *TextureCache::make (tqt::TextureQTree *tree, int level, int row, in
     TextureCache::Key key(tree, level, row, col);
     TextureCache::TextureTbl::const_iterator got = this->_textureTbl.find(key);
     if (got == this->_textureTbl.end()) {
-        TileTexture *txt = new TileTexture(this, tree, level, row, col);
+        TileTexture *txt = new TileTexture(this, tree, level, row, col, tree->sRGB());
         this->_textureTbl.insert(std::pair<TextureCache::Key,TileTexture *>(key, txt));
         return txt;
     }
@@ -41,6 +41,10 @@ void TextureCache::_makeActive (TileTexture *txt)
     assert (! txt->_active);
     if (txt->_activeIdx >= 0) {
         assert (this->_inactive[txt->_activeIdx] == txt);
+
+/** TODO: check if we are over the limit and, if so, free the
+ ** resources associated with the LRU TileTexture
+ */
 
       // first remove txt from the inactive list by moving the last element to where it is
         TileTexture *last = this->_inactive.back();
@@ -71,13 +75,21 @@ void TextureCache::_release (TileTexture *txt)
   // add txt to the inactive list
     txt->_activeIdx = this->_inactive.size();
     this->_inactive.push_back(txt);
+
+/** TODO: check if we are over the limit and, if so, free the
+ ** resources associated with the TileTexture
+ */
 }
 
 /***** class TileTexture member functions *****/
 
-TileTexture::TileTexture (TextureCache *cache, tqt::TextureQTree *tree, int level, int row, int col)
+TileTexture::TileTexture (
+    TextureCache *cache,
+    tqt::TextureQTree *tree,
+    int level, int row, int col,
+    bool mipmaps)
     : _txt(nullptr), _cache(cache), _tree(tree), _level(level), _row(row), _col(col),
-      _lastUsed(0), _activeIdx(-1), _active(false)
+      _lastUsed(0), _activeIdx(-1), _active(false), _mipmaps(mipmaps)
 { }
 
 TileTexture::~TileTexture ()
@@ -87,6 +99,7 @@ TileTexture::~TileTexture ()
     }
 /* FIXME: remove from cache inactive list */
     if (this->_txt != nullptr) {
+        vkDestroySampler(this->_cache->_app->device(), this->_sampler, nullptr);
         delete this->_txt;
     }
 }
@@ -99,7 +112,17 @@ void TileTexture::activate ()
     if (this->_txt == nullptr) {
         // load the image data from the TQT and create a texture for it
         cs237::Image2D *img = this->_tree->loadImage (this->_level, this->_row, this->_col);
-        this->_txt = new cs237::Texture2D (this->_cache->_app, img, true);
+        this->_txt = new cs237::Texture2D (this->_cache->_app, img, this->_mipmaps);
+
+        // create the sampler for the texture
+        cs237::Application::SamplerInfo samplerInfo(
+            VK_FILTER_LINEAR,
+            VK_FILTER_LINEAR,
+            VK_SAMPLER_MIPMAP_MODE_LINEAR,
+            VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            VK_BORDER_COLOR_INT_OPAQUE_BLACK);
+        this->_sampler = this->_cache->_app->createSampler (samplerInfo);
     }
 
     this->_cache->_makeActive (this);

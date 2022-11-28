@@ -21,6 +21,13 @@ namespace cs237 {
 static std::vector<const char *> requiredExtensions (bool debug);
 static int graphicsQueueIndex (VkPhysicalDevice dev);
 
+// callback for debug messages
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback (
+    VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+    VkDebugUtilsMessageTypeFlagsEXT ty,
+    const VkDebugUtilsMessengerCallbackDataEXT* cbData,
+    void* usrData);
+
 const std::vector<const char *> kValidationLayers = {
         "VK_LAYER_KHRONOS_validation"
     };
@@ -31,7 +38,7 @@ const std::vector<const char *> kValidationLayers = {
 Application::Application (std::vector<const char *> &args, std::string const &name)
   : _name(name),
     _messages(VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT),
-    _debug(0),
+    _debug(false),
     _gpu(VK_NULL_HANDLE),
     _propsCache(nullptr)
 {
@@ -56,6 +63,11 @@ Application::Application (std::vector<const char *> &args, std::string const &na
     // create a Vulkan instance
     this->_createInstance();
 
+    // set up the debug handler
+    if (this->_debug) {
+        this->_initDebug ();
+    }
+
     // initialize the command pool
     this->_initCommandPool();
 }
@@ -71,6 +83,10 @@ Application::~Application ()
 
     // destroy the logical device
     vkDestroyDevice(this->_device, nullptr);
+
+    if (this->_debug) {
+        this->_cleanupDebug();
+    }
 
     // delete the instance
     vkDestroyInstance(this->_instance, nullptr);
@@ -926,6 +942,80 @@ bool Application::_getQIndices (VkPhysicalDevice dev)
 
 
     return false;
+
+}
+
+/***** Debug callback support *****/
+
+constexpr int kMaxErrorCount = 20;
+constexpr int kMaxWarningCount = 50;
+
+static int errorCount = 0;
+static int warningCount = 0;
+
+// callback for debug messages
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback (
+    VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+    VkDebugUtilsMessageTypeFlagsEXT ty,
+    const VkDebugUtilsMessengerCallbackDataEXT* cbData,
+    void* usrData)
+{
+    std::cerr << "# " << cbData->pMessage << std::endl;
+
+    // check to see if we should terminate
+    if (severity > VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+        if (++errorCount > kMaxErrorCount) {
+            ERROR("too many validation errors");
+        }
+    } else if (severity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+        if (++warningCount > kMaxErrorCount) {
+            ERROR("too many validation warnings");
+        }
+    }
+
+    return VK_FALSE;
+}
+
+// set up the debug callback
+void Application::_initDebug ()
+{
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr (
+        this->_instance,
+        "vkCreateDebugUtilsMessengerEXT");
+
+    if (func != nullptr) {
+        VkDebugUtilsMessengerCreateInfoEXT info;
+        info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        info.messageSeverity =
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        info.messageType =
+            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        info.pfnUserCallback = debugCallback;
+
+        VkDebugUtilsMessengerEXT debugMessenger;
+        auto sts = func (this->_instance, &info, nullptr, &this->_debugMessenger);
+        if (sts != VK_SUCCESS) {
+            ERROR("unable to set up debug messenger!");
+        }
+    } else {
+        ERROR("unable to get vkCreateDebugUtilsMessengerEXT address");
+    }
+
+}
+
+// clean up the debug callback
+void Application::_cleanupDebug ()
+{
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(
+        this->_instance,
+        "vkDestroyDebugUtilsMessengerEXT");
+    if (func != nullptr) {
+        func (this->_instance, this->_debugMessenger, nullptr);
+    }
 
 }
 

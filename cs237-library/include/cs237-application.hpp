@@ -361,6 +361,10 @@ protected:
         VkImage dstImg, VkBuffer srcBuf, size_t size,
         uint32_t wid, uint32_t ht=1, uint32_t depth=1);
 
+    /* debug-message support */
+    VkDebugUtilsMessengerEXT _debugMessenger;
+    void _initDebug ();
+    void _cleanupDebug ();
 };
 
 } // namespace cs237

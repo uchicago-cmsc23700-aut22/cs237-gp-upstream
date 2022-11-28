@@ -20,12 +20,15 @@ TextureBase::TextureBase (
     Application *app,
     uint32_t wid, uint32_t ht, uint32_t mipLvls,
     cs237::__detail::ImageBase const *img)
-  : _app(app), _wid(wid), _ht(ht), _fmt(img->format())
+  : _app(app), _wid(wid), _ht(ht), _nMipLevels(mipLvls), _fmt(img->format())
 {
+    VkImageUsageFlags usage = (mipLvls > 1) ?
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT :
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     this->_img = app->_createImage (
         wid, ht, this->_fmt,
         VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        usage,
         mipLvls);
     this->_mem = app->_allocImageMemory(
         this->_img,
@@ -124,21 +127,51 @@ static uint32_t mipLevels (Image2D const *img, bool mipmap)
 Texture2D::Texture2D (Application *app, Image2D const *img, bool mipmap)
   : __detail::TextureBase(app, img->width(), img->height(), mipLevels(img, mipmap), img)
 {
-    this->_init (img);
-
     if (mipmap) {
-        this->_generateMipMaps();
+        this->_generateMipMaps (img);
+    } else {
+        this->_init (img);
     }
 }
 
 // helper function for generating the mipmaps for a texture
-void Texture2D::_generateMipMaps ()
+void Texture2D::_generateMipMaps (Image2D const *img)
 {
     // Check if image format supports linear blitting
     VkFormatProperties props = this->_app->formatProps(this->_fmt);
     if (!(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
-        ERROR("texture image format does not support linear blitting!");
+        ERROR("texture-image format does not support linear blitting!");
     }
+
+/** FIXME: we should really use a single set of commands for both copying the data
+ ** to the image buffer and for generating the mipmaps.
+ **/
+    void *data = img->data();
+    size_t nBytes = img->nBytes();
+    auto device = this->_app->_device;
+
+    // create a staging buffer for copying the image
+    VkBuffer stagingBuf = this->_createBuffer (
+        nBytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    VkDeviceMemory stagingBufMem = this->_allocBufferMemory(
+        stagingBuf,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    // copy the image data to the staging buffer
+    void* stagingData;
+    vkMapMemory(device, stagingBufMem, 0, nBytes, 0, &stagingData);
+    memcpy(stagingData, data, nBytes);
+    vkUnmapMemory(device, stagingBufMem);
+
+    this->_app->_transitionImageLayout(
+        this->_img, this->_fmt,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    this->_app->_copyBufferToImage(this->_img, stagingBuf, nBytes, this->_wid, this->_ht);
+
+    // free up the staging buffer
+    vkFreeMemory(device, stagingBufMem, nullptr);
+    vkDestroyBuffer(device, stagingBuf, nullptr);
 
     VkCommandBuffer cmdBuf = this->_app->newCommandBuf();
 
@@ -150,20 +183,32 @@ void Texture2D::_generateMipMaps ()
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
-    barrier.subresourceRange.levelCount = 1;
+
+    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+    vkCmdPipelineBarrier(cmdBuf,
+        VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier);
 
     int32_t mipWid = this->_wid;
     int32_t mipHt = this->_ht;
 
     // compute the mipmap levels; note that level 0 is the base image
     for (uint32_t i = 1; i < this->_nMipLevels; i++) {
+        barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.subresourceRange.baseMipLevel = i;
-        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
         vkCmdPipelineBarrier(cmdBuf,
             VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
@@ -176,16 +221,14 @@ void Texture2D::_generateMipMaps ()
 
         VkImageBlit blit{};
         blit.srcOffsets[0] = {0, 0, 0};
-        blit.srcOffsets[1] = {mipWid, mipHt, 1};
+        blit.srcOffsets[1] = { mipWid, mipHt, 1 };
         blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         blit.srcSubresource.mipLevel = i - 1;
-        blit.srcSubresource.baseArrayLayer = 0;
         blit.srcSubresource.layerCount = 1;
         blit.dstOffsets[0] = {0, 0, 0};
         blit.dstOffsets[1] = { nextWid, nextHt, 1 };
         blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         blit.dstSubresource.mipLevel = i;
-        blit.dstSubresource.baseArrayLayer = 0;
         blit.dstSubresource.layerCount = 1;
 
         vkCmdBlitImage(cmdBuf,
@@ -194,9 +237,9 @@ void Texture2D::_generateMipMaps ()
             1, &blit,
             VK_FILTER_LINEAR);
 
-        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
         vkCmdPipelineBarrier(cmdBuf,
@@ -209,10 +252,11 @@ void Texture2D::_generateMipMaps ()
         mipHt = nextHt;
     }
 
-    barrier.subresourceRange.baseMipLevel = this->_nMipLevels - 1;
-    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = this->_nMipLevels;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
     barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
     vkCmdPipelineBarrier(cmdBuf,

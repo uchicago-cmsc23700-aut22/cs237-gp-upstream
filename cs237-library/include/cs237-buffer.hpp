@@ -28,6 +28,9 @@ public:
     //! return the Vulkan handle for the buffer
     VkBuffer vkBuffer () const { return this->_buf; }
 
+    //! return the size of the buffer in bytes
+    size_t size() const { return this->_sz; }
+
 protected:
     Application *_app;          //!< the application
     VkBuffer _buf;              //!< the Vulkan buffer object

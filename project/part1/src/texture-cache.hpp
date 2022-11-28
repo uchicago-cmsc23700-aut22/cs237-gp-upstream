@@ -26,36 +26,47 @@ class TileTexture {
   public:
     ~TileTexture ();
 
-  //! is this texture active?
+    //! is this texture active?
     bool isActive () const { return this->_active; }
 
-  //! activate the texture; this operation is a hint to the texture
-  //! cache that the texture is going to be used soon.
+    //! activate the texture; this operation is a hint to the texture
+    //! cache that the texture is going to be used soon.
     void activate ();
 
-  //! bind this texture to the given texture unit (0 based)
-    void use (int txtUnit)
-    {
-        if (! this->_active) {
-            this->activate();
-        }
-    }
-
-  //! hint to the texture cache that this texture is not needed.
+    //! hint to the texture cache that this texture is not needed.
     void release ();
 
-  private:
-    cs237::Texture2D    *_txt;          //!< the Vulkan texture (or nullptr, if not resident)
-    TextureCache        *_cache;        //!< the cache that this texture belongs to
-    tqt::TextureQTree   *_tree;         //!< the texture quadtree from which this texture comes
-    uint32_t            _level;         //!< the TQT level of this texture
-    uint32_t            _row;           //!< the TQT row of this texture
-    uint32_t            _col;           //!< the TQT column of this texture
-    uint32_t            _lastUsed;      //!< the last frame that this texture was used
-    int                 _activeIdx;     //!< index of this texture in the cache's _active vector
-    bool                _active;        //!< true when this texture is in use
+    //! initialize the descriptor-info needed to update a descriptor for this
+    //! texture
+    void getDescriptorInfo (VkDescriptorImageInfo &info)
+    {
+        if (! this->isActive()) {
+            this->activate();
+        }
+        info.sampler = this->_sampler;
+        info.imageView = this->_txt->view();
+        info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    }
 
-    TileTexture (TextureCache *cache, tqt::TextureQTree *tree, int level, int row, int col);
+  private:
+    cs237::Texture2D *_txt;     //!< the Vulkan texture (or nullptr, if not resident)
+    VkSampler _sampler;         //!< the sampler for accessing the texture from the
+                                //!< shaders (when active)
+    TextureCache *_cache;       //!< the cache that this texture belongs to
+    tqt::TextureQTree *_tree;   //!< the texture quadtree from which this texture comes
+    uint32_t _level;            //!< the TQT level of this texture
+    uint32_t _row;              //!< the TQT row of this texture
+    uint32_t _col;              //!< the TQT column of this texture
+    uint32_t _lastUsed;         //!< the last frame that this texture was used
+    int _activeIdx;             //!< index of this texture in the cache's _active vector
+    bool _active;               //!< true when this texture is in use
+    bool _mipmaps;              //!< should we generate mipmaps for the texture?
+
+    TileTexture (
+        TextureCache *cache,
+        tqt::TextureQTree *tree,
+        int level, int row, int col,
+        bool mipmaps);
 
     friend class TextureCache;
     friend struct TxtCompare;
@@ -65,10 +76,18 @@ class TileTexture {
 class TextureCache {
   public:
 
-    TextureCache (cs237::Application *app);
+    //! TextureCache constructor
+    //! \param app     the application
+    //! \param mipmap  optional flag to request mipmaps for the textures when they are created.
+    TextureCache (cs237::Application *app, bool mipmap = false);
     ~TextureCache ();
 
-  //! make a texture handle for the specified quad in the texture quad tree
+  //! \brief make a texture handle for the specified quad in the texture quad tree
+  //! \param tree    the TQT to get the source image data from
+  //! \param level   the TQT level of the texture
+  //! \param row     the TQT row of the texture
+  //! \param col     the TQT column of the texture
+  //! \return the texture for the tile
     TileTexture *make (tqt::TextureQTree *tree, int level, int row, int col);
 
   //! mark the beginning of a new frame; the texture cache uses this information to
@@ -77,11 +96,10 @@ class TextureCache {
 
   private:
     cs237::Application *_app;   //!< application pointer
-    uint64_t _residentLimit;    //!< soft upper bound on the size of GL resident textures
-    uint64_t _residentSzb;      //!< estimate of the size of GL resident textures
-    uint32_t _clock;            //!< counts number of frames
+    uint64_t _numActive;        //!< number of GPU resident textures
+    uint64_t _clock;            //!< counts number of frames
 
-  //! keys for hashing texture specifications
+    //! keys for hashing texture specifications
     struct Key {
         tqt::TextureQTree       *_tree; //!< the texture quadtree from which this texture comes
         int                     _level; //!< the TQT level of this texture
@@ -92,7 +110,7 @@ class TextureCache {
             : _tree(t), _level(l), _row(r), _col(c)
         { }
     };
-  //! hashing keys
+    //! hashing keys
     struct Hash {
         std::size_t operator() (Key const &k) const
         {
@@ -103,7 +121,7 @@ class TextureCache {
                 static_cast<int>(k._col));
         }
     };
-  //! equality test on keys
+    //! equality test on keys
     struct Equal {
         bool operator()(Key const &k1, Key const &k2) const
         {
@@ -112,7 +130,7 @@ class TextureCache {
         }
     };
 
-  // for ordering textures by timestamp
+    // for ordering textures by timestamp
     struct TxtCompare {
         bool operator() (const TileTexture &lhs, const TileTexture &rhs) const
         {
@@ -126,10 +144,10 @@ class TextureCache {
     std::vector<TileTexture *> _active; //!< active textures
     std::vector<TileTexture *> _inactive; //!< inactive textures that are loaded, but may be reused.
 
-  //! record that the given texture is now active
+    //! record that the given texture is now active
     void _makeActive (TileTexture *txt);
 
-  //! record that the given texture is now inactive
+    //! record that the given texture is now inactive
     void _release (TileTexture *txt);
 
     friend class TileTexture;
