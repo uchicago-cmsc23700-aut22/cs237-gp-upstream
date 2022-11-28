@@ -22,7 +22,7 @@ constexpr uint32_t kWindowHeight = 768;
 
 static void usage (int sts)
 {
-    std::cerr << "usage: proj2 [options] <scene>\n";
+    std::cerr << "usage: part1 [options] <scene>\n";
     exit (sts);
 }
 
