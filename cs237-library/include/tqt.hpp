@@ -25,7 +25,7 @@ namespace tqt {
 
         //! \brief constructor for a texture quad tree
         //! \param filename
-        //! \param flip should the image be flipped to match OpenGL (default true)
+        //! \param flip should the image be flipped to match OpenGL conventions
         //! \param sRGB are the textures in sRGB format?
         TextureQTree (std::string const &filename, bool flip, bool sRGB);
         ~TextureQTree();

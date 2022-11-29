@@ -157,7 +157,7 @@ void *readPNG (
             png_set_expand_gray_1_2_4_to_8(pngPtr);
         }
         else if (bitDepth == 16) {
-          // PNG files store date in network byte order (big-endian), but the x86 is little-endian
+          // PNG files store data in network byte order (big-endian), but the x86 is little-endian
             png_set_swap (pngPtr);
             ty = ChannelTy::U16;
             bytesPerPixel = 2;
@@ -168,7 +168,7 @@ void *readPNG (
         ty = ChannelTy::U8;
         bytesPerPixel = 2;
         if (bitDepth == 16) {
-          // PNG files store date in network byte order (big-endian), but the x86 is little-endian
+          // PNG files store data in network byte order (big-endian), but the x86 is little-endian
             png_set_swap (pngPtr);
             bytesPerPixel = 4;
             ty = ChannelTy::U16;
