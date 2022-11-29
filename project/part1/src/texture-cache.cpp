@@ -25,7 +25,7 @@ TileTexture *TextureCache::make (tqt::TextureQTree *tree, int level, int row, in
     TextureCache::Key key(tree, level, row, col);
     TextureCache::TextureTbl::const_iterator got = this->_textureTbl.find(key);
     if (got == this->_textureTbl.end()) {
-        TileTexture *txt = new TileTexture(this, tree, level, row, col, tree->sRGB());
+        TileTexture *txt = new TileTexture(this, tree, level, row, col, true);
         this->_textureTbl.insert(std::pair<TextureCache::Key,TileTexture *>(key, txt));
         return txt;
     }
@@ -88,7 +88,8 @@ TileTexture::TileTexture (
     tqt::TextureQTree *tree,
     int level, int row, int col,
     bool mipmaps)
-    : _txt(nullptr), _cache(cache), _tree(tree), _level(level), _row(row), _col(col),
+    : _txt(nullptr), _sampler(VK_NULL_HANDLE), _cache(cache), _tree(tree),
+      _level(level), _row(row), _col(col),
       _lastUsed(0), _activeIdx(-1), _active(false), _mipmaps(mipmaps)
 { }
 
