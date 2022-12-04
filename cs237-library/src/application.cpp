@@ -154,14 +154,14 @@ static bool hasFeatures (VkPhysicalDevice gpu, VkPhysicalDeviceFeatures *reqFeat
     VkPhysicalDeviceFeatures availFeatures;
     vkGetPhysicalDeviceFeatures (gpu, &availFeatures);
 
-    if (reqFeatures->fillModeNonSolid == availFeatures.fillModeNonSolid) {
-        return true;
+    if (reqFeatures->fillModeNonSolid && (! availFeatures.fillModeNonSolid)) {
+        return false;
     }
-    else if (reqFeatures->samplerAnisotropy == availFeatures.samplerAnisotropy) {
-        return true;
+    else if (reqFeatures->samplerAnisotropy && (! availFeatures.samplerAnisotropy)) {
+        return false;
     }
     else {
-        return false;
+        return true;
     }
 }
 
@@ -231,9 +231,7 @@ void Application::_getPhysicalDeviceProperties () const
     vkGetPhysicalDeviceProperties(this->_gpu, this->_propsCache);
 }
 
-int32_t Application::_findMemory (
-    uint32_t reqTypeBits,
-    VkMemoryPropertyFlags reqProps) const
+int32_t Application::_findMemory (uint32_t reqTypeBits, VkMemoryPropertyFlags reqProps) const
 {
     // get the memory properties for the device
     VkPhysicalDeviceMemoryProperties memProps;
@@ -984,7 +982,7 @@ void Application::_initDebug ()
         "vkCreateDebugUtilsMessengerEXT");
 
     if (func != nullptr) {
-        VkDebugUtilsMessengerCreateInfoEXT info;
+        VkDebugUtilsMessengerCreateInfoEXT info{};
         info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         info.messageSeverity =
             VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
